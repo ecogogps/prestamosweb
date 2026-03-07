@@ -231,10 +231,10 @@ export default function SolicitudesPage() {
                       </Button>
                       <Button 
                         size="sm" 
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-4 h-10 rounded-xl shadow-lg shadow-primary/20 ml-1"
+                        className="bg-primary hover:bg-primary/90 text-white font-black px-4 h-10 rounded-xl shadow-lg shadow-primary/20 ml-1"
                         onClick={() => handleUpdateStatus(solicitud.id, 'accepted')}
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-2" /> ACEPTAR
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-white" /> ACEPTAR
                       </Button>
                     </div>
                   )}
