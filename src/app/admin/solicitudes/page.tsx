@@ -151,13 +151,13 @@ export default function SolicitudesPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error de Permisos (RLS)</AlertTitle>
           <AlertDescription>
-            {error}. Asegúrate de haber ejecutado las políticas SQL para permitir que los administradores vean todas las tablas.
+            {error}. Asegúrate de haber ejecutado las políticas SQL para permitir que los administradores vean todas las tablas sin recursión.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="grid gap-4">
-        {solicitudes.length === 0 ? (
+        {solicitudes.length === 0 && !error ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center shadow-inner">
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center">
@@ -165,7 +165,7 @@ export default function SolicitudesPage() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">Bandeja de entrada vacía</h3>
-                <p className="text-muted-foreground max-w-xs mx-auto mt-2">No hay solicitudes pendientes en este momento o las políticas RLS están bloqueando el acceso.</p>
+                <p className="text-muted-foreground max-w-xs mx-auto mt-2">No hay solicitudes pendientes en este momento.</p>
               </div>
             </div>
           </Card>
