@@ -175,7 +175,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
                 <p className="text-sm font-bold text-white leading-none uppercase tracking-widest">
                   {profile?.role || 'USUARIO'}
                 </p>
-                <p className="text-[10px] text-primary font-bold uppercase mt-1 tracking-tighter">Acceso Directivo</p>
+                <p className="text-[10px] text-primary font-bold uppercase mt-1 tracking-tighter">ACCESO</p>
               </div>
               <div className="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20 ring-2 ring-primary/20">
                 {profile?.role?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
