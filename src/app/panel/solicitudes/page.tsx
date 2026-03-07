@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -43,6 +42,10 @@ export default function SolicitudesPage() {
     'rejected': 'RECHAZADO',
     'paid': 'PAGADO',
     'overdue': 'MORA'
+  };
+
+  const formatAmount = (amount: number | string) => {
+    return new Intl.NumberFormat('en-US').format(Number(amount));
   };
 
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function SolicitudesPage() {
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
                       <span className="flex items-center font-bold text-primary">
                         <DollarSign className="h-4 w-4 mr-0.5" />
-                        {solicitud.amount?.toLocaleString() || '0'}
+                        {formatAmount(solicitud.amount)}
                       </span>
                       <span className="flex items-center text-muted-foreground">
                         <Clock className="h-4 w-4 mr-1.5 opacity-70" />
@@ -255,7 +258,7 @@ export default function SolicitudesPage() {
                             <div>
                               <SectionTitle icon={DollarSign} title="Detalles" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Monto Solicitado" value={`$${solicitud.amount?.toLocaleString()}`} bold highlight />
+                                <DataBox label="Monto Solicitado" value={`$${formatAmount(solicitud.amount)}`} bold highlight />
                                 <DataBox label="Plazo de Pago (Días)" value={`${solicitud.payment_term} Días`} />
                                 <DataBox label="Forma de Pago" value={solicitud.payment_method} />
                                 <DataBox label="Estado Actual" value={statusMap[solicitud.status]} />
