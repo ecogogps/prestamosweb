@@ -7,15 +7,16 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -64,18 +65,15 @@ export default function LoginPage() {
         <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-3xl font-bold tracking-tight text-primary">ADMIN PANEL</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Gestiona el capital de forma inteligente
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Usuario Administrativo</Label>
+                <Label htmlFor="email">Correo</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@moneybic.com"
+                  placeholder="correo@app.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -83,15 +81,24 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contraseña Corporativa</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-muted/50 border-border focus-visible:ring-primary h-12"
-                />
+                <Label htmlFor="password">Contraseña</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-muted/50 border-border focus-visible:ring-primary h-12 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <Button 
                 type="submit" 
@@ -101,17 +108,13 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    VALIDANDO...
+                    INGRESANDO...
                   </>
-                ) : "ENTRAR AL SISTEMA"}
+                ) : "INGRESAR"}
               </Button>
             </form>
           </CardContent>
         </Card>
-        
-        <p className="text-center text-xs text-muted-foreground uppercase tracking-widest opacity-50">
-          © 2024 MONEYBIC FINTECH SOLUTIONS
-        </p>
       </div>
     </main>
   );
