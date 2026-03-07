@@ -20,6 +20,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +30,17 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
         router.push('/login');
       } else {
         setUser(session.user);
+        
+        // Obtener el perfil para saber el rol
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileData) {
+          setProfile(profileData);
+        }
       }
       setLoading(false);
     };
@@ -160,11 +172,13 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-4 pl-4 border-l border-border">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-white leading-none">{user.email?.split('@')[0]}</p>
+                <p className="text-sm font-bold text-white leading-none uppercase tracking-widest">
+                  {profile?.role || 'USUARIO'}
+                </p>
                 <p className="text-[10px] text-primary font-bold uppercase mt-1 tracking-tighter">Acceso Directivo</p>
               </div>
-              <div className="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center font-bold text-primary-foreground shadow-lg shadow-primary/20 ring-2 ring-primary/20">
-                {user.email?.charAt(0).toUpperCase()}
+              <div className="h-11 w-11 rounded-2xl bg-primary flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20 ring-2 ring-primary/20">
+                {profile?.role?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
