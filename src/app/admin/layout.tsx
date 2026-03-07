@@ -13,10 +13,10 @@ import {
   History, 
   Settings, 
   LogOut,
-  ChevronRight,
   Menu,
   Bell,
-  Search
+  Search,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -72,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user) return null;
 
   const navItems = [
+    { name: 'Solicitudes', href: '/admin/solicitudes', icon: ClipboardList },
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Cobradores', href: '/admin/cobradores', icon: Users },
     { name: 'Préstamos', href: '/admin/prestamos', icon: Wallet },
@@ -157,13 +158,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SheetContent>
             </Sheet>
             
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar cliente o préstamo..." 
-                className="w-80 bg-muted/30 border-none pl-10 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-primary"
-              />
-            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight hidden sm:block">
+              {navItems.find(i => i.href === pathname)?.name || 'Panel Admin'}
+            </h2>
           </div>
 
           <div className="flex items-center space-x-6">

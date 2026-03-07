@@ -36,7 +36,7 @@ export default function LoginPage() {
         title: "Bienvenido",
         description: "Acceso concedido al panel de MONEYBIC.",
       });
-      router.push('/admin');
+      router.push('/admin/solicitudes');
     } catch (error: any) {
       toast({
         variant: "destructive",
