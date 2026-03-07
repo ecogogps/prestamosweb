@@ -64,7 +64,7 @@ export default function LoginPage() {
 
         <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-3xl font-bold tracking-tight text-primary">ADMIN PANEL</CardTitle>
+            <CardTitle className="text-3xl font-bold tracking-tight text-primary uppercase">ADMIN PANEL</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
@@ -102,7 +102,7 @@ export default function LoginPage() {
               </div>
               <Button 
                 type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
               >
                 {isLoading ? (
