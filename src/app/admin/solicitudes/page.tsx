@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -245,8 +244,7 @@ export default function SolicitudesPage() {
                     <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-none shadow-2xl p-0 overflow-hidden">
                       <DialogHeader className="p-8 pb-4 bg-muted/10 border-b border-border">
                         <DialogTitle className="text-2xl font-black text-white flex items-center uppercase tracking-tighter">
-                          <CreditCard className="mr-4 h-8 w-8 text-primary" /> 
-                          Expediente: {solicitud.first_name} {solicitud.last_name}
+                          {solicitud.first_name} {solicitud.last_name}
                         </DialogTitle>
                       </DialogHeader>
                       <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
