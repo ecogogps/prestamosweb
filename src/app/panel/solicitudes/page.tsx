@@ -207,10 +207,10 @@ export default function SolicitudesPage() {
                       <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] font-bold text-white/60 uppercase tracking-widest border border-white/10">
                         {solicitud.payment_method}
                       </span>
-                      <Badge className={`font-bold tracking-widest rounded-lg ${
-                        solicitud.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                        solicitud.status === 'accepted' ? 'bg-primary/20 text-primary border-primary/20' :
-                        'bg-red-400/20 text-red-400 border-red-400/20'
+                      <Badge variant="outline" className={`font-bold tracking-widest rounded-lg border-none hover:bg-inherit ${
+                        solicitud.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                        solicitud.status === 'accepted' ? 'bg-primary/20 text-primary' :
+                        'bg-red-400/20 text-red-400'
                       }`}>
                         {statusMap[solicitud.status]}
                       </Badge>
