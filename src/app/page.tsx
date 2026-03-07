@@ -14,7 +14,7 @@ export default function Home() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          router.push('/admin/solicitudes');
+          router.push('/panel/solicitudes');
         } else {
           router.push('/login');
         }
