@@ -102,12 +102,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={`flex items-center space-x-3 rounded-2xl px-4 py-4 text-sm font-bold transition-all transform active:scale-95 ${
                   isActive 
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/30' 
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
                 <item.icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-primary'}`} />
-                <span>{item.name}</span>
+                <span className={isActive ? 'text-white' : ''}>{item.name}</span>
               </Link>
             );
           })}
@@ -139,16 +139,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Image src="https://i.postimg.cc/Jzd6XVzQ/MONEYBIC-LOGO.png" alt="Logo" width={140} height={40} />
                 </div>
                 <nav className="space-y-2 p-6">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="flex items-center space-x-3 rounded-2xl px-4 py-4 text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground"
-                    >
-                      <item.icon className="h-5 w-5 text-primary" />
-                      <span>{item.name}</span>
-                    </Link>
-                  ))}
+                  {navItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center space-x-3 rounded-2xl px-4 py-4 text-sm font-bold transition-all ${
+                          isActive 
+                            ? 'bg-primary text-white' 
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <item.icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-primary'}`} />
+                        <span className={isActive ? 'text-white' : ''}>{item.name}</span>
+                      </Link>
+                    );
+                  })}
                   <div className="pt-4 mt-4 border-t border-border">
                     <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive font-bold" onClick={handleLogout}>
                       <LogOut className="mr-3 h-5 w-5" /> Cerrar Sesión
