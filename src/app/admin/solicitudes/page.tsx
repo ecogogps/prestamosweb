@@ -179,8 +179,16 @@ export default function SolicitudesPage() {
             <Card key={solicitud.id} className="bg-card border-none shadow-xl hover:shadow-primary/5 transition-all overflow-hidden border-l-4 border-l-transparent hover:border-l-primary group">
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0">
-                    <User className="h-8 w-8" />
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0 overflow-hidden border border-border/50">
+                    {solicitud.face_photo_url ? (
+                      <img 
+                        src={solicitud.face_photo_url} 
+                        alt={`${solicitud.first_name} rostro`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-8 w-8" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
