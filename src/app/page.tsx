@@ -1,22 +1,27 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const { user, loading } = useUser();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
         router.push('/admin');
       } else {
         router.push('/login');
       }
-    }
-  }, [user, loading, router]);
+      setLoading(false);
+    };
+
+    checkSession();
+  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
