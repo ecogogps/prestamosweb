@@ -21,7 +21,9 @@ import {
   AlertCircle,
   RefreshCw,
   ClipboardList,
-  Users
+  Users,
+  Image as ImageIcon,
+  Heart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,12 +37,21 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Image from 'next/image';
 
 export default function SolicitudesPage() {
   const [solicitudes, setSolicitudes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const statusMap: Record<string, string> = {
+    'pending': 'PENDIENTE',
+    'accepted': 'ACEPTADO',
+    'rejected': 'RECHAZADO',
+    'paid': 'PAGADO',
+    'overdue': 'MORA'
+  };
 
   useEffect(() => {
     fetchSolicitudes();
@@ -85,11 +96,6 @@ export default function SolicitudesPage() {
     } catch (err: any) {
       console.error("Error fetching loans:", err);
       setError(err.message);
-      toast({
-        variant: "destructive",
-        title: "Error de conexión",
-        description: "No se pudieron cargar las solicitudes. Verifica las políticas RLS.",
-      });
     } finally {
       setLoading(false);
     }
@@ -149,9 +155,9 @@ export default function SolicitudesPage() {
       {error && (
         <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error de Permisos (RLS)</AlertTitle>
+          <AlertTitle>Error de Conexión</AlertTitle>
           <AlertDescription>
-            {error}. Asegúrate de haber ejecutado las políticas SQL para permitir que los administradores vean todas las tablas sin recursión.
+            {error}. Verifica las políticas RLS y la conexión con Supabase.
           </AlertDescription>
         </Alert>
       )}
@@ -193,17 +199,24 @@ export default function SolicitudesPage() {
                       </span>
                       <span className="flex items-center text-muted-foreground">
                         <Clock className="h-4 w-4 mr-1.5 opacity-70" />
-                        {solicitud.payment_term} {solicitud.payment_term === 1 ? 'Cuota' : 'Cuotas'}
+                        {solicitud.payment_term} Días
                       </span>
                       <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] font-bold text-white/60 uppercase tracking-widest border border-white/10">
                         {solicitud.payment_method}
                       </span>
+                      <Badge className={`font-bold tracking-widest rounded-lg ${
+                        solicitud.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                        solicitud.status === 'accepted' ? 'bg-primary/20 text-primary border-primary/20' :
+                        'bg-red-400/20 text-red-400 border-red-400/20'
+                      }`}>
+                        {statusMap[solicitud.status]}
+                      </Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 sm:ml-auto md:ml-0">
-                  {solicitud.status === 'pending' ? (
+                  {solicitud.status === 'pending' && (
                     <div className="flex items-center bg-muted/10 p-1 rounded-2xl border border-border/50">
                       <Button 
                         variant="ghost" 
@@ -221,12 +234,6 @@ export default function SolicitudesPage() {
                         <CheckCircle2 className="h-4 w-4 mr-2" /> ACEPTAR
                       </Button>
                     </div>
-                  ) : (
-                    <Badge className={`px-5 py-2 font-black rounded-xl tracking-widest ${
-                      solicitud.status === 'accepted' ? 'bg-primary/20 text-primary border-primary/20' : 'bg-red-400/20 text-red-400 border-red-400/20'
-                    }`}>
-                      {solicitud.status.toUpperCase()}
-                    </Badge>
                   )}
                   
                   <Dialog>
@@ -235,7 +242,7 @@ export default function SolicitudesPage() {
                         <Eye className="h-5 w-5" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] bg-card border-none shadow-2xl p-0 overflow-hidden">
+                    <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-none shadow-2xl p-0 overflow-hidden">
                       <DialogHeader className="p-8 pb-4 bg-muted/10 border-b border-border">
                         <DialogTitle className="text-2xl font-black text-white flex items-center uppercase tracking-tighter">
                           <CreditCard className="mr-4 h-8 w-8 text-primary" /> 
@@ -243,56 +250,35 @@ export default function SolicitudesPage() {
                         </DialogTitle>
                       </DialogHeader>
                       <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                           {/* Columna 1: Finanzas */}
-                          <div className="space-y-8">
+                          <div className="space-y-8 lg:col-span-1">
                             <div>
-                              <SectionTitle icon={DollarSign} title="Detalles del Crédito" />
-                              <div className="grid grid-cols-2 gap-4 mt-4">
-                                <DataBox label="Monto Solicitado" value={`$${solicitud.amount}`} bold highlight />
-                                <DataBox label="Plan de Pagos" value={`${solicitud.payment_term} Cuotas`} />
-                                <DataBox label="Método Preferido" value={solicitud.payment_method} />
-                                <DataBox label="Estado Actual" value={solicitud.status.toUpperCase()} />
+                              <SectionTitle icon={DollarSign} title="Detalles" />
+                              <div className="grid grid-cols-1 gap-4 mt-4">
+                                <DataBox label="Monto Solicitado" value={`$${solicitud.amount?.toLocaleString()}`} bold highlight />
+                                <DataBox label="Plazo de Pago (Días)" value={`${solicitud.payment_term} Días`} />
+                                <DataBox label="Forma de Pago" value={solicitud.payment_method} />
+                                <DataBox label="Estado Actual" value={statusMap[solicitud.status]} />
                               </div>
                             </div>
 
                             <div>
                               <SectionTitle icon={CreditCard} title="Información Bancaria" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Institución Financiera" value={solicitud.bank_name || 'No especificado'} />
+                                <DataBox label="Banco" value={solicitud.bank_name || 'No especificado'} />
                                 <DataBox label="Número de Cuenta" value={solicitud.account_number || 'Pendiente'} />
-                              </div>
-                            </div>
-
-                            <div>
-                              <SectionTitle icon={Users} title="Referencias de Contacto" />
-                              <div className="space-y-4 mt-4">
-                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-2 tracking-widest">Referencia Primaria</p>
-                                  <p className="text-base font-bold text-white">{solicitud.ref1_name || 'N/A'}</p>
-                                  <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center bg-white/5 px-2 py-1 rounded-md capitalize">{solicitud.ref1_relation}</span>
-                                    <span className="flex items-center"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref1_phone}</span>
-                                  </div>
-                                </div>
-                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-2 tracking-widest">Referencia Secundaria</p>
-                                  <p className="text-base font-bold text-white">{solicitud.ref2_name || 'N/A'}</p>
-                                  <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center bg-white/5 px-2 py-1 rounded-md capitalize">{solicitud.ref2_relation}</span>
-                                    <span className="flex items-center"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref2_phone}</span>
-                                  </div>
-                                </div>
                               </div>
                             </div>
                           </div>
 
                           {/* Columna 2: Perfil */}
-                          <div className="space-y-8">
+                          <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={User} title="Perfil del Solicitante" />
-                              <div className="grid grid-cols-2 gap-4 mt-4">
-                                <DataBox label="Correo Electrónico" value={solicitud.email} colSpan={2} />
+                              <div className="grid grid-cols-1 gap-4 mt-4">
+                                <DataBox label="Género" value={solicitud.gender} />
+                                <DataBox label="Correo Electrónico" value={solicitud.email} />
                                 <DataBox label="Documento ID" value={solicitud.doc_number} />
                                 <DataBox label="Fecha Nacimiento" value={solicitud.dob} />
                                 <DataBox label="Estado Civil" value={solicitud.marital_status} />
@@ -302,34 +288,62 @@ export default function SolicitudesPage() {
 
                             <div>
                               <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
-                              <div className="grid grid-cols-2 gap-4 mt-4">
-                                <DataBox label="Dirección Completa" value={solicitud.address} colSpan={2} />
+                              <div className="grid grid-cols-1 gap-4 mt-4">
+                                <DataBox label="Dirección Completa" value={solicitud.address} />
                                 <DataBox label="Provincia/Estado" value={solicitud.province} />
                                 <DataBox label="Ciudad" value={solicitud.city} />
                                 <DataBox label="Tipo de Vivienda" value={solicitud.housing_type} />
                               </div>
                             </div>
+                          </div>
+
+                          {/* Columna 3: Referencias y Multimedia */}
+                          <div className="space-y-8 lg:col-span-1">
+                            <div>
+                              <SectionTitle icon={Users} title="Referencias" />
+                              <div className="space-y-4 mt-4">
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Primaria</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref1_name || 'N/A'}</p>
+                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center capitalize">{solicitud.ref1_relation}</span>
+                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref1_phone}</span>
+                                  </div>
+                                </div>
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Secundaria</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref2_name || 'N/A'}</p>
+                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center capitalize">{solicitud.ref2_relation}</span>
+                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref2_phone}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
                             <div>
-                              <SectionTitle icon={Briefcase} title="Verificación Multimedia" />
-                              <div className="flex flex-wrap gap-4 mt-4">
+                              <SectionTitle icon={ImageIcon} title="Verificación Visual" />
+                              <div className="grid grid-cols-1 gap-6 mt-4">
                                 {solicitud.face_photo_url ? (
-                                  <a href={solicitud.face_photo_url} target="_blank" rel="noreferrer" className="flex-1">
-                                    <Button variant="secondary" className="w-full h-12 rounded-xl bg-muted/30 hover:bg-primary/20 hover:text-primary transition-all border border-border font-bold">
-                                      <User className="h-4 w-4 mr-2" /> FOTO ROSTRO
-                                    </Button>
-                                  </a>
+                                  <div className="space-y-2">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
+                                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                      <img src={solicitud.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <div className="flex-1 p-3 rounded-xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
+                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
                                 )}
+                                
                                 {solicitud.id_front_url ? (
-                                  <a href={solicitud.id_front_url} target="_blank" rel="noreferrer" className="flex-1">
-                                    <Button variant="secondary" className="w-full h-12 rounded-xl bg-muted/30 hover:bg-primary/20 hover:text-primary transition-all border border-border font-bold">
-                                      <CreditCard className="h-4 w-4 mr-2" /> FOTO DOCUMENTO
-                                    </Button>
-                                  </a>
+                                  <div className="space-y-2">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
+                                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                      <img src={solicitud.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <div className="flex-1 p-3 rounded-xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ID</div>
+                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                                 )}
                               </div>
                             </div>
