@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -14,7 +13,10 @@ import {
   RefreshCw,
   ClipboardList,
   Users,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CreditCard,
+  Phone,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,15 @@ export default function SolicitudesPage() {
     return new Intl.NumberFormat('en-US').format(Number(amount));
   };
 
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return 'Pendiente';
+    const cleanDate = dateStr.split('T')[0];
+    const parts = cleanDate.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  };
+
   useEffect(() => {
     fetchSolicitudes();
 
@@ -70,7 +81,6 @@ export default function SolicitudesPage() {
     setLoading(true);
     setError(null);
     try {
-      // Solo mostramos solicitudes PENDIENTES
       const { data, error: fetchError } = await supabase
         .from('loans')
         .select('*')
@@ -229,13 +239,14 @@ export default function SolicitudesPage() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-none shadow-2xl p-0 overflow-hidden">
-                      <div className="p-8 pb-4 bg-muted/10 border-b border-border">
+                      <DialogHeader className="p-8 pb-4 bg-muted/10 border-b border-border">
                         <DialogTitle className="text-2xl font-black text-white flex items-center uppercase tracking-tighter">
                           {solicitud.first_name} {solicitud.last_name}
                         </DialogTitle>
-                      </div>
+                      </DialogHeader>
                       <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                          {/* Columna 1: Finanzas */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={DollarSign} title="Detalles" />
@@ -243,17 +254,20 @@ export default function SolicitudesPage() {
                                 <DataBox label="Monto Solicitado" value={`$${formatAmount(solicitud.amount)}`} bold highlight />
                                 <DataBox label="Plazo de Pago (Días)" value={`${solicitud.payment_term} Días`} />
                                 <DataBox label="Forma de Pago" value={solicitud.payment_method} />
-                                <DataBox label="Estado Actual" value="PENDIENTE" />
+                                <DataBox label="Estado Actual" value={statusMap[solicitud.status]} />
                               </div>
                             </div>
+
                             <div>
-                              <SectionTitle icon={Users} title="Información Bancaria" />
+                              <SectionTitle icon={CreditCard} title="Información Bancaria" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
                                 <DataBox label="Banco" value={solicitud.bank_name || 'No especificado'} />
                                 <DataBox label="Número de Cuenta" value={solicitud.account_number || 'Pendiente'} />
                               </div>
                             </div>
                           </div>
+
+                          {/* Columna 2: Perfil */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -266,6 +280,7 @@ export default function SolicitudesPage() {
                                 <DataBox label="Nivel Académico" value={solicitud.education_level} />
                               </div>
                             </div>
+
                             <div>
                               <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
@@ -276,25 +291,54 @@ export default function SolicitudesPage() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Columna 3: Referencias y Multimedia */}
                           <div className="space-y-8 lg:col-span-1">
+                            <div>
+                              <SectionTitle icon={Users} title="Referencias" />
+                              <div className="space-y-4 mt-4">
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Primaria</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref1_name || 'N/A'}</p>
+                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center capitalize">{solicitud.ref1_relation}</span>
+                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref1_phone}</span>
+                                  </div>
+                                </div>
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Secundaria</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref2_name || 'N/A'}</p>
+                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center capitalize">{solicitud.ref2_relation}</span>
+                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref2_phone}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
                             <div>
                               <SectionTitle icon={ImageIcon} title="Verificación Visual" />
                               <div className="grid grid-cols-1 gap-6 mt-4">
-                                {solicitud.face_photo_url && (
+                                {solicitud.face_photo_url ? (
                                   <div className="space-y-2">
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
                                     <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
                                       <img src={solicitud.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
                                     </div>
                                   </div>
+                                ) : (
+                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
                                 )}
-                                {solicitud.id_front_url && (
+                                
+                                {solicitud.id_front_url ? (
                                   <div className="space-y-2">
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
                                     <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
                                       <img src={solicitud.id_front_url} alt="Documento" className="object-cover w-full h-full" />
                                     </div>
                                   </div>
+                                ) : (
+                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                                 )}
                               </div>
                             </div>
@@ -322,9 +366,9 @@ function SectionTitle({ icon: Icon, title }: any) {
   );
 }
 
-function DataBox({ label, value, bold, colSpan, highlight }: any) {
+function DataBox({ label, value, bold, highlight }: any) {
   return (
-    <div className={`p-4 bg-muted/20 rounded-2xl border border-border/40 ${colSpan === 2 ? 'col-span-2' : ''}`}>
+    <div className="p-4 bg-muted/20 rounded-2xl border border-border/40">
       <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5 tracking-widest">{label}</p>
       <p className={`text-base tracking-tight ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
         {value || 'Información no disponible'}
