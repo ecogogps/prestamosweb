@@ -44,11 +44,20 @@ export default function AceptadosPage() {
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return 'Pendiente';
-    const cleanDate = dateStr.split('T')[0];
-    const parts = cleanDate.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
+    try {
+      const cleanDate = dateStr.split('T')[0];
+      const date = new Date(cleanDate + 'T12:00:00');
+      if (isNaN(date.getTime())) return dateStr;
+
+      return new Intl.DateTimeFormat('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'America/Mexico_City'
+      }).format(date);
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   useEffect(() => {
@@ -130,7 +139,6 @@ export default function AceptadosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white uppercase">Préstamos Aceptados</h1>
-          <p className="text-muted-foreground mt-1">Gestión de desembolsos y seguimiento financiero.</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button 
