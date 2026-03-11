@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -39,11 +38,22 @@ export default function DMinusOnePage() {
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return 'Pendiente';
-    const cleanDate = dateStr.split('T')[0];
-    const parts = cleanDate.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
+    const date = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'America/Mexico_City'
+    }).format(date);
+  };
+
+  const getMexicoTodayStr = () => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
   };
 
   useEffect(() => {
@@ -51,11 +61,7 @@ export default function DMinusOnePage() {
 
     const channel = supabase
       .channel('loans-realtime-d1')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'loans' },
-        () => fetchPrestamos()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => fetchPrestamos())
       .subscribe();
 
     return () => {
@@ -74,13 +80,13 @@ export default function DMinusOnePage() {
 
       if (error) throw error;
 
-      // Cálculo de fecha de mañana en formato YYYY-MM-DD (Independiente de Zona Horaria)
-      const tomorrow = new Date();
+      const todayStr = getMexicoTodayStr();
+      const today = new Date(todayStr + 'T12:00:00');
+      const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
       
       const filtered = (data || []).filter(loan => {
-        // Obtenemos fecha de desembolso base
         const disbursement = new Date(loan.disbursed_at.split('T')[0] + 'T12:00:00');
         const dueDate = new Date(disbursement);
         dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
@@ -91,11 +97,7 @@ export default function DMinusOnePage() {
 
       setPrestamos(filtered);
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: err.message,
-      });
+      toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -105,8 +107,8 @@ export default function DMinusOnePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white uppercase">Módulo D-1</h1>
-          <p className="text-muted-foreground mt-1">Préstamos que vencen el día de mañana.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white uppercase text-primary">Módulo D-1</h1>
+          <p className="text-muted-foreground mt-1">Préstamos que vencen mañana (Hora México).</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button variant="outline" size="sm" onClick={fetchPrestamos} className="rounded-xl border-primary/20">
@@ -156,7 +158,7 @@ export default function DMinusOnePage() {
                       </span>
                       <span className="flex items-center text-yellow-500 font-bold">
                         <CalendarCheck className="h-4 w-4 mr-1.5" />
-                        Vence: {formatDateDisplay(dueDate.toISOString())}
+                        Vence: {formatDateDisplay(dueDate.toISOString().split('T')[0])}
                       </span>
                     </div>
                   </div>
@@ -176,7 +178,6 @@ export default function DMinusOnePage() {
                     </div>
                     <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                        {/* Columna 1: Finanzas */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={DollarSign} title="Detalles" />
@@ -185,10 +186,9 @@ export default function DMinusOnePage() {
                               <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
                               <DataBox label="Forma de Pago" value={prestamo.payment_method} />
                               <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
-                              <DataBox label="Fecha Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
+                              <DataBox label="Fecha Vencimiento" value={formatDateDisplay(dueDate.toISOString().split('T')[0])} highlight />
                             </div>
                           </div>
-
                           <div>
                             <SectionTitle icon={CreditCard} title="Información Bancaria" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -198,7 +198,6 @@ export default function DMinusOnePage() {
                           </div>
                         </div>
 
-                        {/* Columna 2: Perfil */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -211,7 +210,6 @@ export default function DMinusOnePage() {
                               <DataBox label="Nivel Académico" value={prestamo.education_level} />
                             </div>
                           </div>
-
                           <div>
                             <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -223,7 +221,6 @@ export default function DMinusOnePage() {
                           </div>
                         </div>
 
-                        {/* Columna 3: Referencias y Multimedia */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={Users} title="Referencias" />
@@ -246,30 +243,24 @@ export default function DMinusOnePage() {
                               </div>
                             </div>
                           </div>
-
                           <div>
                             <SectionTitle icon={ImageIcon} title="Verificación Visual" />
                             <div className="grid grid-cols-1 gap-6 mt-4">
-                              {prestamo.face_photo_url ? (
+                              {prestamo.face_photo_url && (
                                 <div className="space-y-2">
                                   <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
-                                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border">
                                     <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
                                   </div>
                                 </div>
-                              ) : (
-                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
                               )}
-                              
-                              {prestamo.id_front_url ? (
+                              {prestamo.id_front_url && (
                                 <div className="space-y-2">
-                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
-                                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                    <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento ID</p>
+                                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border">
+                                    <img src={prestamo.id_front_url} alt="ID" className="object-cover w-full h-full" />
                                   </div>
                                 </div>
-                              ) : (
-                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                               )}
                             </div>
                           </div>
