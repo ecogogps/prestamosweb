@@ -38,8 +38,11 @@ export default function DZeroPage() {
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return 'Pendiente';
-    const parts = dateStr.split('T')[0].split('-');
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const cleanDate = dateStr.split('T')[0];
+    const parts = cleanDate.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
   };
 
   useEffect(() => {
@@ -74,10 +77,10 @@ export default function DZeroPage() {
       today.setHours(0, 0, 0, 0);
       
       const filtered = (data || []).filter(loan => {
-        const disbursement = new Date(loan.disbursed_at);
-        disbursement.setHours(0, 0, 0, 0);
+        const disbursement = new Date(loan.disbursed_at + 'T12:00:00');
         const dueDate = new Date(disbursement);
         dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
+        dueDate.setHours(0, 0, 0, 0);
         
         return dueDate.getTime() === today.getTime();
       });
@@ -93,13 +96,6 @@ export default function DZeroPage() {
       setLoading(false);
     }
   }
-
-  if (loading) return (
-    <div className="flex h-[400px] flex-col items-center justify-center space-y-4">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-widest text-xs">Cargando Cobros de Hoy...</p>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -119,7 +115,7 @@ export default function DZeroPage() {
       </div>
 
       <div className="grid gap-4">
-        {prestamos.length === 0 ? (
+        {prestamos.length === 0 && !loading ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center">
             <div className="flex flex-col items-center justify-center space-y-4">
               <CalendarCheck className="h-10 w-10 text-muted-foreground/50" />
@@ -127,8 +123,12 @@ export default function DZeroPage() {
               <p className="text-muted-foreground">La agenda de hoy está libre de vencimientos.</p>
             </div>
           </Card>
-        ) : (
-          prestamos.map((prestamo) => (
+        ) : prestamos.map((prestamo) => {
+          const disbursement = new Date(prestamo.disbursed_at + 'T12:00:00');
+          const dueDate = new Date(disbursement);
+          dueDate.setDate(dueDate.getDate() + (prestamo.payment_term || 0));
+
+          return (
             <Card key={prestamo.id} className="bg-card border-none shadow-xl border-l-4 border-l-primary overflow-hidden">
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
@@ -148,7 +148,11 @@ export default function DZeroPage() {
                       </span>
                       <span className="flex items-center text-muted-foreground">
                         <CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />
-                        Vence: Hoy
+                        Desembolso: {formatDateDisplay(prestamo.disbursed_at)}
+                      </span>
+                      <span className="flex items-center text-primary font-bold">
+                        <CalendarCheck className="h-4 w-4 mr-1.5" />
+                        Vence: Hoy ({formatDateDisplay(dueDate.toISOString())})
                       </span>
                       <Badge className="bg-primary/20 text-primary border-none font-bold uppercase">Cobro Hoy</Badge>
                     </div>
@@ -169,7 +173,6 @@ export default function DZeroPage() {
                     </div>
                     <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                        {/* Finanzas */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={DollarSign} title="Detalles" />
@@ -178,6 +181,7 @@ export default function DZeroPage() {
                               <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
                               <DataBox label="Forma de Pago" value={prestamo.payment_method} />
                               <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
+                              <DataBox label="Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
                             </div>
                           </div>
                           <div>
@@ -189,7 +193,6 @@ export default function DZeroPage() {
                           </div>
                         </div>
 
-                        {/* Perfil */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -213,7 +216,6 @@ export default function DZeroPage() {
                           </div>
                         </div>
 
-                        {/* Referencias y Multimedia */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={Users} title="Referencias" />
@@ -258,8 +260,8 @@ export default function DZeroPage() {
                 </Dialog>
               </div>
             </Card>
-          ))
-        )}
+          );
+        })}
       </div>
     </div>
   );
