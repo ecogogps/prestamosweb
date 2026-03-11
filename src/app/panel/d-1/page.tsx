@@ -39,6 +39,7 @@ export default function DMinusOnePage() {
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return 'Pendiente';
     try {
+      // Limpiamos la cadena para obtener solo YYYY-MM-DD si viene con tiempo
       const cleanDate = dateStr.split('T')[0];
       const date = new Date(cleanDate + 'T12:00:00');
       if (isNaN(date.getTime())) return dateStr;
@@ -115,7 +116,6 @@ export default function DMinusOnePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white uppercase text-primary">Módulo D-1</h1>
-          <p className="text-muted-foreground mt-1">Préstamos que vencen mañana (Hora México).</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button variant="outline" size="sm" onClick={fetchPrestamos} className="rounded-xl border-primary/20">
