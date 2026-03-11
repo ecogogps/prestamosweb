@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -9,12 +8,24 @@ import {
   RefreshCw,
   User,
   AlertTriangle,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  MapPin,
+  Users,
+  CreditCard,
+  Phone,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function SOnePage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
@@ -33,6 +44,19 @@ export default function SOnePage() {
 
   useEffect(() => {
     fetchPrestamos();
+
+    const channel = supabase
+      .channel('loans-realtime-s1')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'loans' },
+        () => fetchPrestamos()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function fetchPrestamos() {
@@ -124,20 +148,139 @@ export default function SOnePage() {
                       </span>
                       <span className="flex items-center text-muted-foreground">
                         <CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />
-                        Venció el: {formatDateDisplay(new Date(new Date(prestamo.disbursed_at).setDate(new Date(prestamo.disbursed_at).getDate() + prestamo.payment_term)).toISOString())}
+                        Venció el: {formatDateDisplay(new Date(new Date(prestamo.disbursed_at).setDate(new Date(prestamo.disbursed_at).getDate() + (prestamo.payment_term || 0))).toISOString())}
                       </span>
                       <Badge className="bg-red-500/20 text-red-400 border-none font-bold uppercase">Mora Activa</Badge>
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-red-400/10 hover:text-red-400">
-                  <Eye className="h-5 w-5" />
-                </Button>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-red-400/10 hover:text-red-400">
+                      <Eye className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-none shadow-2xl p-0 overflow-hidden">
+                    <div className="p-8 pb-4 bg-muted/10 border-b border-border">
+                      <DialogTitle className="text-2xl font-black text-white flex items-center uppercase tracking-tighter">
+                        {prestamo.first_name} {prestamo.last_name}
+                      </DialogTitle>
+                    </div>
+                    <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        {/* Finanzas */}
+                        <div className="space-y-8 lg:col-span-1">
+                          <div>
+                            <SectionTitle icon={DollarSign} title="Detalles" />
+                            <div className="grid grid-cols-1 gap-4 mt-4">
+                              <DataBox label="Monto Solicitado" value={`$${formatAmount(prestamo.amount)}`} bold highlight />
+                              <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
+                              <DataBox label="Forma de Pago" value={prestamo.payment_method} />
+                              <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
+                            </div>
+                          </div>
+                          <div>
+                            <SectionTitle icon={CreditCard} title="Información Bancaria" />
+                            <div className="grid grid-cols-1 gap-4 mt-4">
+                              <DataBox label="Banco" value={prestamo.bank_name || 'No especificado'} />
+                              <DataBox label="Número de Cuenta" value={prestamo.account_number || 'Pendiente'} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Perfil */}
+                        <div className="space-y-8 lg:col-span-1">
+                          <div>
+                            <SectionTitle icon={User} title="Perfil del Solicitante" />
+                            <div className="grid grid-cols-1 gap-4 mt-4">
+                              <DataBox label="Género" value={prestamo.gender} />
+                              <DataBox label="Correo Electrónico" value={prestamo.email} />
+                              <DataBox label="Documento ID" value={prestamo.doc_number} />
+                              <DataBox label="Fecha Nacimiento" value={prestamo.dob} />
+                              <DataBox label="Estado Civil" value={prestamo.marital_status} />
+                              <DataBox label="Nivel Académico" value={prestamo.education_level} />
+                            </div>
+                          </div>
+                          <div>
+                            <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
+                            <div className="grid grid-cols-1 gap-4 mt-4">
+                              <DataBox label="Dirección Completa" value={prestamo.address} />
+                              <DataBox label="Provincia/Estado" value={prestamo.province} />
+                              <DataBox label="Ciudad" value={prestamo.city} />
+                              <DataBox label="Tipo de Vivienda" value={prestamo.housing_type} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Referencias y Multimedia */}
+                        <div className="space-y-8 lg:col-span-1">
+                          <div>
+                            <SectionTitle icon={Users} title="Referencias" />
+                            <div className="space-y-4 mt-4">
+                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Primaria</p>
+                                <p className="text-sm font-bold text-white">{prestamo.ref1_name || 'N/A'}</p>
+                                <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                  <span className="flex items-center capitalize">{prestamo.ref1_relation}</span>
+                                  <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {prestamo.ref1_phone}</span>
+                                </div>
+                              </div>
+                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Secundaria</p>
+                                <p className="text-sm font-bold text-white">{prestamo.ref2_name || 'N/A'}</p>
+                                <div className="flex flex-col mt-2 text-xs text-muted-foreground">
+                                  <span className="flex items-center capitalize">{prestamo.ref2_relation}</span>
+                                  <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {prestamo.ref2_phone}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <SectionTitle icon={ImageIcon} title="Verificación Visual" />
+                            <div className="grid grid-cols-1 gap-6 mt-4">
+                              {prestamo.face_photo_url && (
+                                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                  <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                                </div>
+                              )}
+                              {prestamo.id_front_url && (
+                                <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                  <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </Card>
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function SectionTitle({ icon: Icon, title }: any) {
+  return (
+    <div className="flex items-center space-x-3 border-l-4 border-primary pl-4">
+      <Icon className="h-5 w-5 text-primary" />
+      <h4 className="text-sm font-black text-white uppercase tracking-[0.2em]">{title}</h4>
+    </div>
+  );
+}
+
+function DataBox({ label, value, bold, highlight }: any) {
+  return (
+    <div className="p-4 bg-muted/20 rounded-2xl border border-border/40">
+      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5 tracking-widest">{label}</p>
+      <p className={`text-base tracking-tight ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
+        {value || 'Información no disponible'}
+      </p>
     </div>
   );
 }
