@@ -9,7 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { 
   LogOut,
   Menu,
-  ClipboardList
+  ClipboardList,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -31,7 +32,6 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
       } else {
         setUser(session.user);
         
-        // Obtener el perfil para saber el rol
         const { data: profileData } = await supabase
           .from('profiles')
           .select('role')
@@ -77,6 +77,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Solicitudes', href: '/panel/solicitudes', icon: ClipboardList },
+    { name: 'Aceptados', href: '/panel/aceptados', icon: CheckCircle2 },
   ];
 
   return (
