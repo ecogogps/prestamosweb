@@ -10,7 +10,10 @@ import {
   LogOut,
   Menu,
   ClipboardList,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  CalendarCheck,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -78,6 +81,9 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Solicitudes', href: '/panel/solicitudes', icon: ClipboardList },
     { name: 'Aceptados', href: '/panel/aceptados', icon: CheckCircle2 },
+    { name: 'D-1', href: '/panel/d-1', icon: Clock },
+    { name: 'D0', href: '/panel/d0', icon: CalendarCheck },
+    { name: 'S1', href: '/panel/s1', icon: AlertTriangle },
   ];
 
   return (
