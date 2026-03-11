@@ -29,10 +29,17 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-      } else {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session) {
+          if (error) {
+            await supabase.auth.signOut();
+          }
+          router.push('/login');
+          return;
+        }
+
         setUser(session.user);
         
         const { data: profileData } = await supabase
@@ -44,8 +51,11 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
         if (profileData) {
           setProfile(profileData);
         }
+      } catch (err) {
+        router.push('/login');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkUser();

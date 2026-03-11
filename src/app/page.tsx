@@ -12,7 +12,15 @@ export default function Home() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // Si hay un error de sesión (como token inválido), limpiamos y mandamos al login
+          await supabase.auth.signOut();
+          router.push('/login');
+          return;
+        }
+
         if (session) {
           router.push('/panel/solicitudes');
         } else {
