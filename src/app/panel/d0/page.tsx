@@ -38,13 +38,20 @@ export default function DZeroPage() {
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return 'Pendiente';
-    const date = new Date(dateStr + 'T12:00:00');
-    return new Intl.DateTimeFormat('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'America/Mexico_City'
-    }).format(date);
+    try {
+      const cleanDate = dateStr.split('T')[0];
+      const date = new Date(cleanDate + 'T12:00:00');
+      if (isNaN(date.getTime())) return dateStr;
+
+      return new Intl.DateTimeFormat('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'America/Mexico_City'
+      }).format(date);
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   const getMexicoTodayStr = () => {
