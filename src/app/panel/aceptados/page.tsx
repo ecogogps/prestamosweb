@@ -40,6 +40,17 @@ export default function AceptadosPage() {
     return new Intl.NumberFormat('en-US').format(Number(amount));
   };
 
+  // Función para formatear fecha evitando desfases de zona horaria (YYYY-MM-DD -> DD/MM/YYYY)
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return 'Pendiente';
+    // Si viene de Postgres como ISO (con T), tomamos solo la parte de la fecha
+    const cleanDate = dateStr.split('T')[0];
+    const parts = cleanDate.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  };
+
   useEffect(() => {
     fetchPrestamos();
 
@@ -174,7 +185,7 @@ export default function AceptadosPage() {
                       </span>
                       <span className="flex items-center text-muted-foreground">
                         <CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />
-                        Desembolso: {prestamo.disbursed_at ? new Date(prestamo.disbursed_at).toLocaleDateString() : 'Pendiente'}
+                        Desembolso: {formatDateDisplay(prestamo.disbursed_at)}
                       </span>
                       <Badge className="bg-primary/20 text-primary border-none font-bold">ACEPTADO</Badge>
                     </div>
@@ -197,9 +208,9 @@ export default function AceptadosPage() {
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="date">Seleccionar Fecha</Label>
+                          <Label htmlFor={`date-${prestamo.id}`}>Seleccionar Fecha</Label>
                           <Input 
-                            id="date" 
+                            id={`date-${prestamo.id}`}
                             type="date" 
                             defaultValue={prestamo.disbursed_at ? prestamo.disbursed_at.split('T')[0] : new Date().toISOString().split('T')[0]}
                             className="bg-muted/50 border-border text-white"
@@ -210,7 +221,7 @@ export default function AceptadosPage() {
                         <Button 
                           className="bg-primary text-white font-black w-full"
                           onClick={() => {
-                            const dateInput = document.getElementById('date') as HTMLInputElement;
+                            const dateInput = document.getElementById(`date-${prestamo.id}`) as HTMLInputElement;
                             handleUpdateDisbursement(prestamo.id, dateInput.value);
                           }}
                           disabled={updatingId === prestamo.id}
@@ -243,7 +254,7 @@ export default function AceptadosPage() {
                                 <DataBox label="Monto Solicitado" value={`$${formatAmount(prestamo.amount)}`} bold highlight />
                                 <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
                                 <DataBox label="Forma de Pago" value={prestamo.payment_method} />
-                                <DataBox label="Fecha Desembolso" value={prestamo.disbursed_at ? new Date(prestamo.disbursed_at).toLocaleDateString() : 'No registrada'} />
+                                <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
                               </div>
                             </div>
                             <div>
