@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -73,16 +74,16 @@ export default function DZeroPage() {
 
       if (error) throw error;
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Fecha de hoy en formato YYYY-MM-DD
+      const todayStr = new Date().toISOString().split('T')[0];
       
       const filtered = (data || []).filter(loan => {
-        const disbursement = new Date(loan.disbursed_at + 'T12:00:00');
+        const disbursement = new Date(loan.disbursed_at.split('T')[0] + 'T12:00:00');
         const dueDate = new Date(disbursement);
         dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
-        dueDate.setHours(0, 0, 0, 0);
         
-        return dueDate.getTime() === today.getTime();
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+        return dueDateStr === todayStr;
       });
 
       setPrestamos(filtered);
@@ -124,7 +125,7 @@ export default function DZeroPage() {
             </div>
           </Card>
         ) : prestamos.map((prestamo) => {
-          const disbursement = new Date(prestamo.disbursed_at + 'T12:00:00');
+          const disbursement = new Date(prestamo.disbursed_at.split('T')[0] + 'T12:00:00');
           const dueDate = new Date(disbursement);
           dueDate.setDate(dueDate.getDate() + (prestamo.payment_term || 0));
 
@@ -154,7 +155,6 @@ export default function DZeroPage() {
                         <CalendarCheck className="h-4 w-4 mr-1.5" />
                         Vence: Hoy ({formatDateDisplay(dueDate.toISOString())})
                       </span>
-                      <Badge className="bg-primary/20 text-primary border-none font-bold uppercase">Cobro Hoy</Badge>
                     </div>
                   </div>
                 </div>
@@ -173,6 +173,7 @@ export default function DZeroPage() {
                     </div>
                     <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        {/* Columna 1: Finanzas */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={DollarSign} title="Detalles" />
@@ -181,9 +182,10 @@ export default function DZeroPage() {
                               <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
                               <DataBox label="Forma de Pago" value={prestamo.payment_method} />
                               <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
-                              <DataBox label="Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
+                              <DataBox label="Fecha Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={CreditCard} title="Información Bancaria" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -193,6 +195,7 @@ export default function DZeroPage() {
                           </div>
                         </div>
 
+                        {/* Columna 2: Perfil */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -205,6 +208,7 @@ export default function DZeroPage() {
                               <DataBox label="Nivel Académico" value={prestamo.education_level} />
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -216,6 +220,7 @@ export default function DZeroPage() {
                           </div>
                         </div>
 
+                        {/* Columna 3: Referencias y Multimedia */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={Users} title="Referencias" />
@@ -238,18 +243,30 @@ export default function DZeroPage() {
                               </div>
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={ImageIcon} title="Verificación Visual" />
                             <div className="grid grid-cols-1 gap-6 mt-4">
-                              {prestamo.face_photo_url && (
-                                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                  <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                              {prestamo.face_photo_url ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
+                                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                    <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                                  </div>
                                 </div>
+                              ) : (
+                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
                               )}
-                              {prestamo.id_front_url && (
-                                <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                  <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                              
+                              {prestamo.id_front_url ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
+                                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                    <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                                  </div>
                                 </div>
+                              ) : (
+                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                               )}
                             </div>
                           </div>

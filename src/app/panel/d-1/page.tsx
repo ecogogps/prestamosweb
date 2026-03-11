@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -73,17 +74,19 @@ export default function DMinusOnePage() {
 
       if (error) throw error;
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Cálculo de fecha de mañana en formato YYYY-MM-DD (Independiente de Zona Horaria)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
       
       const filtered = (data || []).filter(loan => {
-        const disbursement = new Date(loan.disbursed_at + 'T12:00:00');
+        // Obtenemos fecha de desembolso base
+        const disbursement = new Date(loan.disbursed_at.split('T')[0] + 'T12:00:00');
         const dueDate = new Date(disbursement);
         dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
-        dueDate.setHours(0, 0, 0, 0);
         
-        const diffInDays = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
-        return diffInDays === 1;
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+        return dueDateStr === tomorrowStr;
       });
 
       setPrestamos(filtered);
@@ -125,7 +128,7 @@ export default function DMinusOnePage() {
             </div>
           </Card>
         ) : prestamos.map((prestamo) => {
-          const disbursement = new Date(prestamo.disbursed_at + 'T12:00:00');
+          const disbursement = new Date(prestamo.disbursed_at.split('T')[0] + 'T12:00:00');
           const dueDate = new Date(disbursement);
           dueDate.setDate(dueDate.getDate() + (prestamo.payment_term || 0));
 
@@ -155,7 +158,6 @@ export default function DMinusOnePage() {
                         <CalendarCheck className="h-4 w-4 mr-1.5" />
                         Vence: {formatDateDisplay(dueDate.toISOString())}
                       </span>
-                      <Badge className="bg-yellow-500/10 text-yellow-500 border-none font-bold uppercase">Mañana</Badge>
                     </div>
                   </div>
                 </div>
@@ -174,6 +176,7 @@ export default function DMinusOnePage() {
                     </div>
                     <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        {/* Columna 1: Finanzas */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={DollarSign} title="Detalles" />
@@ -182,9 +185,10 @@ export default function DMinusOnePage() {
                               <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
                               <DataBox label="Forma de Pago" value={prestamo.payment_method} />
                               <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
-                              <DataBox label="Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
+                              <DataBox label="Fecha Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={CreditCard} title="Información Bancaria" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -194,6 +198,7 @@ export default function DMinusOnePage() {
                           </div>
                         </div>
 
+                        {/* Columna 2: Perfil */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -206,6 +211,7 @@ export default function DMinusOnePage() {
                               <DataBox label="Nivel Académico" value={prestamo.education_level} />
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
                             <div className="grid grid-cols-1 gap-4 mt-4">
@@ -217,6 +223,7 @@ export default function DMinusOnePage() {
                           </div>
                         </div>
 
+                        {/* Columna 3: Referencias y Multimedia */}
                         <div className="space-y-8 lg:col-span-1">
                           <div>
                             <SectionTitle icon={Users} title="Referencias" />
@@ -239,18 +246,30 @@ export default function DMinusOnePage() {
                               </div>
                             </div>
                           </div>
+
                           <div>
                             <SectionTitle icon={ImageIcon} title="Verificación Visual" />
                             <div className="grid grid-cols-1 gap-6 mt-4">
-                              {prestamo.face_photo_url && (
-                                <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                  <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                              {prestamo.face_photo_url ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
+                                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                    <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
+                                  </div>
                                 </div>
+                              ) : (
+                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
                               )}
-                              {prestamo.id_front_url && (
-                                <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                  <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                              
+                              {prestamo.id_front_url ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
+                                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
+                                    <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
+                                  </div>
                                 </div>
+                              ) : (
+                                <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                               )}
                             </div>
                           </div>
