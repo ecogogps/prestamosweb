@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Loader2,
-  PiggyBank
+  PiggyBank,
+  AlertCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -24,24 +25,27 @@ interface LoanFinanceModalProps {
 export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchDetails = async () => {
     if (!loanId) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       const { data: rpcData, error } = await supabase.rpc('get_loan_details', { 
         p_loan_id: loanId 
       });
 
       if (error) {
-        console.error("Error de RPC:", error.message, error.details, error.hint);
-        throw error;
+        // Extraemos el mensaje de error de forma segura para evitar logs de objetos vacíos {}
+        const msg = error.message || "Error al conectar con el servidor";
+        setErrorMessage(msg);
+        return;
       }
 
-      // La función RETURNS JSON devuelve el objeto directamente
       setData(rpcData || null);
     } catch (err: any) {
-      console.error("Error al obtener detalles financieros:", err.message || err);
+      setErrorMessage(err.message || "Ocurrió un error inesperado al calcular los datos.");
     } finally {
       setLoading(false);
     }
@@ -75,10 +79,29 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
       </DialogTrigger>
       <DialogContent className="bg-[#212529] border-none text-white max-w-md p-0 rounded-[32px] overflow-hidden shadow-2xl">
         <DialogTitle className="sr-only">Detalles Financieros del Préstamo</DialogTitle>
+        
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Calculando intereses...</p>
+          </div>
+        ) : errorMessage ? (
+          <div className="flex flex-col items-center justify-center py-16 px-8 text-center space-y-4">
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white uppercase tracking-tight">Error de Acceso</p>
+              <p className="text-xs text-muted-foreground mt-1">{errorMessage}</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchDetails}
+              className="mt-4 rounded-xl border-white/10 hover:bg-white/5"
+            >
+              Reintentar
+            </Button>
           </div>
         ) : data ? (
           <div className="flex flex-col">
