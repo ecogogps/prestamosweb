@@ -8,21 +8,14 @@ import {
   RefreshCw,
   User,
   CalendarCheck,
-  Calendar as CalendarIcon,
   Search
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { LoanDetailsModal } from '@/components/LoanDetailsModal';
 
 export default function DMinusOnePage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
@@ -60,12 +53,7 @@ export default function DMinusOnePage() {
   async function fetchPrestamos() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('status', 'accepted')
-        .not('disbursed_at', 'is', null);
-
+      const { data, error } = await supabase.from('loans').select('*').eq('status', 'accepted').not('disbursed_at', 'is', null);
       if (error) throw error;
 
       const todayStr = getMexicoTodayStr();
@@ -97,35 +85,22 @@ export default function DMinusOnePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white uppercase text-primary">Módulo D-1</h1>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-primary uppercase">Módulo D-1</h1>
         <div className="flex items-center space-x-3">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar nombre o celular..." 
-              className="pl-9 bg-card border-border rounded-xl"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <Input placeholder="Buscar..." className="pl-9 bg-card border-border rounded-xl" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <Button variant="outline" size="sm" onClick={fetchPrestamos} className="rounded-xl border-primary/20">
-            <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
-          </Button>
-          <Badge variant="outline" className="px-4 py-2 text-primary border-primary/20 bg-primary/5 font-bold">
-            {filteredPrestamos.length} PRÓXIMOS
-          </Badge>
+          <Button variant="outline" size="sm" onClick={fetchPrestamos} className="rounded-xl border-primary/20"><RefreshCw className="h-4 w-4 mr-2" /> Actualizar</Button>
+          <Badge variant="outline" className="px-4 py-2 text-primary border-primary/20 bg-primary/5 font-bold">{filteredPrestamos.length} PRÓXIMOS</Badge>
         </div>
       </div>
 
       <div className="grid gap-4">
         {filteredPrestamos.length === 0 && !loading ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <CalendarCheck className="h-10 w-10 text-muted-foreground/50" />
-              <h3 className="text-xl font-bold text-white">Sin vencimientos para mañana</h3>
-            </div>
+            <CalendarCheck className="h-10 w-10 text-muted-foreground/50 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white">Sin vencimientos para mañana</h3>
           </Card>
         ) : filteredPrestamos.map((prestamo) => {
           const disbursement = new Date(prestamo.disbursed_at.split('T')[0] + 'T12:00:00');
@@ -137,66 +112,27 @@ export default function DMinusOnePage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
                   <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 overflow-hidden">
-                    {prestamo.face_photo_url ? (
-                      <img src={prestamo.face_photo_url} alt="Rostro" className="h-full w-full object-cover" />
-                    ) : (
-                      <User className="h-8 w-8" />
-                    )}
+                    {prestamo.face_photo_url ? <img src={prestamo.face_photo_url} alt="Rostro" className="h-full w-full object-cover" /> : <User className="h-8 w-8" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-xl font-black text-white uppercase tracking-tight">{prestamo.first_name} {prestamo.last_name}</h3>
-                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">
-                        {prestamo.phone || 'S/N'}
-                      </span>
+                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">{prestamo.phone || 'S/N'}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
-                      <span className="flex items-center font-bold text-primary">
-                        <DollarSign className="h-4 w-4 mr-0.5" />
-                        {formatAmount(prestamo.amount)}
-                      </span>
-                      <span className="flex items-center text-yellow-500 font-bold">
-                        <CalendarCheck className="h-4 w-4 mr-1.5" />
-                        Vence: {formatDateDisplay(dueDate.toISOString())}
-                      </span>
+                      <span className="flex items-center font-bold text-primary"><DollarSign className="h-4 w-4 mr-0.5" />{formatAmount(prestamo.amount)}</span>
+                      <span className="flex items-center text-yellow-500 font-bold"><CalendarCheck className="h-4 w-4 mr-1.5" />Vence: {formatDateDisplay(dueDate.toISOString())}</span>
                     </div>
                   </div>
                 </div>
-                
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary">
-                      <Eye className="h-5 w-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl bg-card border-none text-white">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-black uppercase">{prestamo.first_name} {prestamo.last_name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 gap-6 py-6">
-                      <DataBox label="Monto" value={`$${formatAmount(prestamo.amount)}`} bold highlight />
-                      <DataBox label="Celular" value={prestamo.phone} highlight />
-                      <DataBox label="Vencimiento" value={formatDateDisplay(dueDate.toISOString())} highlight />
-                      <DataBox label="Plazo" value={`${prestamo.payment_term} Días`} />
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <LoanDetailsModal loan={prestamo} trigger={
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary"><Eye className="h-5 w-5" /></Button>
+                }/>
               </div>
             </Card>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function DataBox({ label, value, bold, highlight }: any) {
-  return (
-    <div className="p-4 bg-muted/20 rounded-2xl border border-border/40">
-      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5">{label}</p>
-      <p className={`text-base ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
-        {value || 'N/A'}
-      </p>
     </div>
   );
 }
