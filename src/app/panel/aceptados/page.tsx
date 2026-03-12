@@ -15,9 +15,11 @@ import {
   Image as ImageIcon,
   Users,
   CreditCard,
-  Phone
+  Phone,
+  Search,
+  Upload
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +38,7 @@ export default function AceptadosPage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const formatAmount = (amount: number | string) => {
@@ -46,15 +49,8 @@ export default function AceptadosPage() {
     if (!dateStr) return 'Pendiente';
     try {
       const cleanDate = dateStr.split('T')[0];
-      const date = new Date(cleanDate + 'T12:00:00');
-      if (isNaN(date.getTime())) return dateStr;
-
-      return new Intl.DateTimeFormat('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'America/Mexico_City'
-      }).format(date);
+      const parts = cleanDate.split('-');
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     } catch (e) {
       return dateStr;
     }
@@ -101,19 +97,42 @@ export default function AceptadosPage() {
     }
   }
 
-  async function handleUpdateDisbursement(id: string, date: string) {
+  async function handleUpdateDisbursement(id: string, date: string, file?: File) {
     setUpdatingId(id);
     try {
+      let receiptUrl = null;
+
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${id}_${Date.now()}.${fileExt}`;
+        const filePath = `receipts/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('loan-files')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('loan-files')
+          .getPublicUrl(filePath);
+        
+        receiptUrl = publicUrl;
+      }
+
+      const updateData: any = { disbursed_at: date };
+      if (receiptUrl) updateData.disbursement_receipt_url = receiptUrl;
+
       const { error } = await supabase
         .from('loans')
-        .update({ disbursed_at: date })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
 
       toast({
-        title: "Desembolso Actualizado",
-        description: "La fecha de desembolso ha sido registrada correctamente.",
+        title: "Desembolso Registrado",
+        description: "La información se ha guardado correctamente.",
       });
       fetchPrestamos();
     } catch (err: any) {
@@ -126,6 +145,12 @@ export default function AceptadosPage() {
       setUpdatingId(null);
     }
   }
+
+  const filteredPrestamos = prestamos.filter(p => {
+    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
+    const phone = (p.phone || '').toLowerCase();
+    return fullName.includes(searchTerm.toLowerCase()) || phone.includes(searchTerm.toLowerCase());
+  });
 
   if (loading) return (
     <div className="flex h-[400px] flex-col items-center justify-center space-y-4">
@@ -141,6 +166,15 @@ export default function AceptadosPage() {
           <h1 className="text-3xl font-bold tracking-tight text-white uppercase">Préstamos Aceptados</h1>
         </div>
         <div className="flex items-center space-x-3">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar nombre o celular..." 
+              className="pl-9 bg-card border-border rounded-xl"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -150,42 +184,40 @@ export default function AceptadosPage() {
             <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
           </Button>
           <Badge variant="outline" className="px-4 py-2 text-primary border-primary/20 bg-primary/5 font-bold">
-            {prestamos.length} ACTIVOS
+            {filteredPrestamos.length} ACTIVOS
           </Badge>
         </div>
       </div>
 
       <div className="grid gap-4">
-        {prestamos.length === 0 ? (
+        {filteredPrestamos.length === 0 ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center">
             <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-muted-foreground/50" />
-              </div>
-              <h3 className="text-xl font-bold text-white">No hay préstamos aceptados</h3>
-              <p className="text-muted-foreground max-w-xs mx-auto mt-2">Los préstamos aparecerán aquí una vez que sean aprobados en Solicitudes.</p>
+              <CheckCircle2 className="h-10 w-10 text-muted-foreground/50" />
+              <h3 className="text-xl font-bold text-white">No hay resultados</h3>
             </div>
           </Card>
         ) : (
-          prestamos.map((prestamo) => (
+          filteredPrestamos.map((prestamo) => (
             <Card key={prestamo.id} className="bg-card border-none shadow-xl hover:shadow-primary/5 transition-all overflow-hidden border-l-4 border-l-primary group">
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
                   <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 overflow-hidden border border-border/50">
                     {prestamo.face_photo_url ? (
-                      <img 
-                        src={prestamo.face_photo_url} 
-                        alt="Rostro"
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={prestamo.face_photo_url} alt="Rostro" className="h-full w-full object-cover" />
                     ) : (
                       <User className="h-8 w-8" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                      {prestamo.first_name} {prestamo.last_name}
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                        {prestamo.first_name} {prestamo.last_name}
+                      </h3>
+                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">
+                        {prestamo.phone || 'S/N'}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
                       <span className="flex items-center font-bold text-primary">
                         <DollarSign className="h-4 w-4 mr-0.5" />
@@ -195,7 +227,6 @@ export default function AceptadosPage() {
                         <CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />
                         Desembolso: {formatDateDisplay(prestamo.disbursed_at)}
                       </span>
-                      <Badge className="bg-primary/20 text-primary border-none font-bold">ACEPTADO</Badge>
                     </div>
                   </div>
                 </div>
@@ -207,35 +238,49 @@ export default function AceptadosPage() {
                         variant="secondary" 
                         className="bg-primary/10 hover:bg-primary/20 text-primary font-black rounded-xl h-10 px-6"
                       >
-                        <CalendarIcon className="h-4 w-4 mr-2" /> FECHA DESEMBOLSO
+                        DESEMBOLSO
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-card border-none text-white max-w-md">
                       <DialogHeader>
-                        <DialogTitle className="text-xl font-black uppercase tracking-tighter">Registrar Desembolso</DialogTitle>
+                        <DialogTitle className="text-xl font-black uppercase">Registrar Desembolso</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 py-4">
+                      <div className="space-y-6 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor={`date-${prestamo.id}`}>Seleccionar Fecha</Label>
+                          <Label>Fecha de Transferencia</Label>
                           <Input 
                             id={`date-${prestamo.id}`}
                             type="date" 
-                            defaultValue={prestamo.disbursed_at ? prestamo.disbursed_at.split('T')[0] : new Date().toISOString().split('T')[0]}
-                            className="bg-muted/50 border-border text-white"
+                            defaultValue={prestamo.disbursed_at || new Date().toISOString().split('T')[0]}
+                            className="bg-muted/50 border-border text-white rounded-xl"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Comprobante (Imagen)</Label>
+                          <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-2xl bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer relative">
+                            <Upload className="h-8 w-8 text-primary mb-2" />
+                            <p className="text-xs text-muted-foreground">Sube la captura de la transferencia</p>
+                            <input 
+                              id={`file-${prestamo.id}`}
+                              type="file" 
+                              accept="image/*"
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
                         <Button 
-                          className="bg-primary text-white font-black w-full"
+                          className="bg-primary text-white font-black w-full h-12 rounded-xl shadow-lg shadow-primary/20"
                           onClick={() => {
                             const dateInput = document.getElementById(`date-${prestamo.id}`) as HTMLInputElement;
-                            handleUpdateDisbursement(prestamo.id, dateInput.value);
+                            const fileInput = document.getElementById(`file-${prestamo.id}`) as HTMLInputElement;
+                            handleUpdateDisbursement(prestamo.id, dateInput.value, fileInput.files?.[0]);
                           }}
                           disabled={updatingId === prestamo.id}
                         >
                           {updatingId === prestamo.id ? <Loader2 className="animate-spin mr-2" /> : null}
-                          GUARDAR FECHA
+                          GUARDAR DESEMBOLSO
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -243,7 +288,7 @@ export default function AceptadosPage() {
 
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary">
+                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary transition-colors">
                         <Eye className="h-5 w-5" />
                       </Button>
                     </DialogTrigger>
@@ -253,101 +298,50 @@ export default function AceptadosPage() {
                           {prestamo.first_name} {prestamo.last_name}
                         </DialogTitle>
                       </div>
-                      <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+                      <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)]">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                          {/* Columna 1: Finanzas */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={DollarSign} title="Detalles" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Monto Solicitado" value={`$${formatAmount(prestamo.amount)}`} bold highlight />
-                                <DataBox label="Plazo de Pago (Días)" value={`${prestamo.payment_term} Días`} />
-                                <DataBox label="Forma de Pago" value={prestamo.payment_method} />
-                                <DataBox label="Fecha Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
+                                <DataBox label="Monto" value={`$${formatAmount(prestamo.amount)}`} bold highlight />
+                                <DataBox label="Plazo" value={`${prestamo.payment_term} Días`} />
+                                <DataBox label="Celular" value={prestamo.phone} highlight />
+                                <DataBox label="Desembolso" value={formatDateDisplay(prestamo.disbursed_at)} />
                               </div>
                             </div>
-
-                            <div>
-                              <SectionTitle icon={CreditCard} title="Información Bancaria" />
-                              <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Banco" value={prestamo.bank_name || 'No especificado'} />
-                                <DataBox label="Número de Cuenta" value={prestamo.account_number || 'Pendiente'} />
+                            {prestamo.disbursement_receipt_url && (
+                              <div>
+                                <SectionTitle icon={ImageIcon} title="Comprobante" />
+                                <div className="mt-4 aspect-video rounded-2xl overflow-hidden border border-border">
+                                  <img src={prestamo.disbursement_receipt_url} alt="Comprobante" className="object-cover w-full h-full cursor-zoom-in" onClick={() => window.open(prestamo.disbursement_receipt_url, '_blank')} />
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
 
-                          {/* Columna 2: Perfil */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
-                              <SectionTitle icon={User} title="Perfil del Solicitante" />
+                              <SectionTitle icon={User} title="Perfil" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Género" value={prestamo.gender} />
-                                <DataBox label="Correo Electrónico" value={prestamo.email} />
                                 <DataBox label="Documento ID" value={prestamo.doc_number} />
-                                <DataBox label="Fecha Nacimiento" value={prestamo.dob} />
-                                <DataBox label="Estado Civil" value={prestamo.marital_status} />
-                                <DataBox label="Nivel Académico" value={prestamo.education_level} />
+                                <DataBox label="Correo" value={prestamo.email} />
                               </div>
                             </div>
-
                             <div>
-                              <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
+                              <SectionTitle icon={MapPin} title="Ubicación" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Dirección Completa" value={prestamo.address} />
-                                <DataBox label="Provincia/Estado" value={prestamo.province} />
-                                <DataBox label="Ciudad" value={prestamo.city} />
-                                <DataBox label="Tipo de Vivienda" value={prestamo.housing_type} />
+                                <DataBox label="Dirección" value={prestamo.address} />
                               </div>
                             </div>
                           </div>
 
-                          {/* Columna 3: Referencias y Multimedia */}
                           <div className="space-y-8 lg:col-span-1">
-                            <div>
-                              <SectionTitle icon={Users} title="Referencias" />
-                              <div className="space-y-4 mt-4">
-                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Primaria</p>
-                                  <p className="text-sm font-bold text-white">{prestamo.ref1_name || 'N/A'}</p>
-                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center capitalize">{prestamo.ref1_relation}</span>
-                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {prestamo.ref1_phone}</span>
-                                  </div>
-                                </div>
-                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Secundaria</p>
-                                  <p className="text-sm font-bold text-white">{prestamo.ref2_name || 'N/A'}</p>
-                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center capitalize">{prestamo.ref2_relation}</span>
-                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {prestamo.ref2_phone}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
                             <div>
                               <SectionTitle icon={ImageIcon} title="Verificación Visual" />
-                              <div className="grid grid-cols-1 gap-6 mt-4">
-                                {prestamo.face_photo_url ? (
-                                  <div className="space-y-2">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
-                                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                      <img src={prestamo.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
-                                )}
-                                
-                                {prestamo.id_front_url ? (
-                                  <div className="space-y-2">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
-                                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                      <img src={prestamo.id_front_url} alt="Documento" className="object-cover w-full h-full" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
+                              <div className="grid grid-cols-1 gap-4 mt-4">
+                                {prestamo.face_photo_url && (
+                                  <img src={prestamo.face_photo_url} alt="Rostro" className="rounded-2xl border border-border aspect-square object-cover" />
                                 )}
                               </div>
                             </div>
@@ -370,7 +364,7 @@ function SectionTitle({ icon: Icon, title }: any) {
   return (
     <div className="flex items-center space-x-3 border-l-4 border-primary pl-4">
       <Icon className="h-5 w-5 text-primary" />
-      <h4 className="text-sm font-black text-white uppercase tracking-[0.2em]">{title}</h4>
+      <h4 className="text-sm font-black text-white uppercase tracking-widest">{title}</h4>
     </div>
   );
 }
@@ -378,9 +372,9 @@ function SectionTitle({ icon: Icon, title }: any) {
 function DataBox({ label, value, bold, highlight }: any) {
   return (
     <div className="p-4 bg-muted/20 rounded-2xl border border-border/40">
-      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5 tracking-widest">{label}</p>
-      <p className={`text-base tracking-tight ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
-        {value || 'Información no disponible'}
+      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5">{label}</p>
+      <p className={`text-base ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
+        {value || 'N/A'}
       </p>
     </div>
   );

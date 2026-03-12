@@ -16,9 +16,10 @@ import {
   Image as ImageIcon,
   CreditCard,
   Phone,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -30,11 +31,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from '@/components/ui/input';
 
 export default function SolicitudesPage() {
   const [solicitudes, setSolicitudes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const statusMap: Record<string, string> = {
@@ -47,15 +50,6 @@ export default function SolicitudesPage() {
 
   const formatAmount = (amount: number | string) => {
     return new Intl.NumberFormat('en-US').format(Number(amount));
-  };
-
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return 'Pendiente';
-    const cleanDate = dateStr.split('T')[0];
-    const parts = cleanDate.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
   };
 
   useEffect(() => {
@@ -119,6 +113,12 @@ export default function SolicitudesPage() {
     }
   }
 
+  const filteredSolicitudes = solicitudes.filter(s => {
+    const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+    const phone = (s.phone || '').toLowerCase();
+    return fullName.includes(searchTerm.toLowerCase()) || phone.includes(searchTerm.toLowerCase());
+  });
+
   if (loading) return (
     <div className="flex h-[400px] flex-col items-center justify-center space-y-4">
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -134,6 +134,15 @@ export default function SolicitudesPage() {
           <p className="text-muted-foreground mt-1">Gestión de nuevas solicitudes recibidas.</p>
         </div>
         <div className="flex items-center space-x-3">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar nombre o celular..." 
+              className="pl-9 bg-card border-border rounded-xl"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -143,7 +152,7 @@ export default function SolicitudesPage() {
             <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
           </Button>
           <Badge variant="outline" className="px-4 py-2 text-primary border-primary/20 bg-primary/5 font-bold">
-            {solicitudes.length} PENDIENTES
+            {filteredSolicitudes.length} PENDIENTES
           </Badge>
         </div>
       </div>
@@ -153,30 +162,27 @@ export default function SolicitudesPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error de Conexión</AlertTitle>
           <AlertDescription>
-            {error}. Verifica las políticas RLS y la conexión con Supabase.
+            {error}. Verifica la conexión con Supabase.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="grid gap-4">
-        {solicitudes.length === 0 && !error ? (
+        {filteredSolicitudes.length === 0 ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center shadow-inner">
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center">
                 <ClipboardList className="h-10 w-10 text-muted-foreground/50" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Bandeja de entrada vacía</h3>
-                <p className="text-muted-foreground max-w-xs mx-auto mt-2">No hay nuevas solicitudes en este momento.</p>
-              </div>
+              <h3 className="text-xl font-bold text-white">No hay resultados</h3>
             </div>
           </Card>
         ) : (
-          solicitudes.map((solicitud) => (
+          filteredSolicitudes.map((solicitud) => (
             <Card key={solicitud.id} className="bg-card border-none shadow-xl hover:shadow-primary/5 transition-all overflow-hidden border-l-4 border-l-transparent hover:border-l-primary group">
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0 overflow-hidden border border-border/50">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 overflow-hidden border border-border/50">
                     {solicitud.face_photo_url ? (
                       <img 
                         src={solicitud.face_photo_url} 
@@ -188,10 +194,13 @@ export default function SolicitudesPage() {
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                        {solicitud.first_name || 'Cliente'} {solicitud.last_name || 'Nuevo'}
+                        {solicitud.first_name} {solicitud.last_name}
                       </h3>
+                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">
+                        {solicitud.phone || 'S/N'}
+                      </span>
                       <span className="h-2 w-2 rounded-full bg-primary animate-ping" title="Nuevo" />
                     </div>
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
@@ -206,9 +215,6 @@ export default function SolicitudesPage() {
                       <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] font-bold text-white/60 uppercase tracking-widest border border-white/10">
                         {solicitud.payment_method}
                       </span>
-                      <Badge variant="outline" className="font-bold tracking-widest rounded-lg border-none hover:bg-inherit bg-yellow-500/10 text-yellow-500">
-                        PENDIENTE
-                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -234,7 +240,7 @@ export default function SolicitudesPage() {
                   
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors">
+                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary transition-colors">
                         <Eye className="h-5 w-5" />
                       </Button>
                     </DialogTrigger>
@@ -244,20 +250,18 @@ export default function SolicitudesPage() {
                           {solicitud.first_name} {solicitud.last_name}
                         </DialogTitle>
                       </DialogHeader>
-                      <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)] custom-scrollbar">
+                      <div className="p-8 pt-6 overflow-y-auto max-h-[calc(90vh-100px)]">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                          {/* Columna 1: Finanzas */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={DollarSign} title="Detalles" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
                                 <DataBox label="Monto Solicitado" value={`$${formatAmount(solicitud.amount)}`} bold highlight />
                                 <DataBox label="Plazo de Pago (Días)" value={`${solicitud.payment_term} Días`} />
-                                <DataBox label="Forma de Pago" value={solicitud.payment_method} />
+                                <DataBox label="Celular" value={solicitud.phone} highlight />
                                 <DataBox label="Estado Actual" value={statusMap[solicitud.status]} />
                               </div>
                             </div>
-
                             <div>
                               <SectionTitle icon={CreditCard} title="Información Bancaria" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
@@ -267,7 +271,6 @@ export default function SolicitudesPage() {
                             </div>
                           </div>
 
-                          {/* Columna 2: Perfil */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={User} title="Perfil del Solicitante" />
@@ -276,69 +279,40 @@ export default function SolicitudesPage() {
                                 <DataBox label="Correo Electrónico" value={solicitud.email} />
                                 <DataBox label="Documento ID" value={solicitud.doc_number} />
                                 <DataBox label="Fecha Nacimiento" value={solicitud.dob} />
-                                <DataBox label="Estado Civil" value={solicitud.marital_status} />
-                                <DataBox label="Nivel Académico" value={solicitud.education_level} />
                               </div>
                             </div>
-
                             <div>
-                              <SectionTitle icon={MapPin} title="Ubicación y Domicilio" />
+                              <SectionTitle icon={MapPin} title="Ubicación" />
                               <div className="grid grid-cols-1 gap-4 mt-4">
-                                <DataBox label="Dirección Completa" value={solicitud.address} />
-                                <DataBox label="Provincia/Estado" value={solicitud.province} />
+                                <DataBox label="Dirección" value={solicitud.address} />
                                 <DataBox label="Ciudad" value={solicitud.city} />
-                                <DataBox label="Tipo de Vivienda" value={solicitud.housing_type} />
                               </div>
                             </div>
                           </div>
 
-                          {/* Columna 3: Referencias y Multimedia */}
                           <div className="space-y-8 lg:col-span-1">
                             <div>
                               <SectionTitle icon={Users} title="Referencias" />
                               <div className="space-y-4 mt-4">
                                 <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Primaria</p>
-                                  <p className="text-sm font-bold text-white">{solicitud.ref1_name || 'N/A'}</p>
-                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center capitalize">{solicitud.ref1_relation}</span>
-                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref1_phone}</span>
-                                  </div>
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1">Referencia 1</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref1_name}</p>
+                                  <p className="text-xs text-muted-foreground mt-1"><Phone className="h-3 w-3 inline mr-1" /> {solicitud.ref1_phone}</p>
                                 </div>
                                 <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                  <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Referencia Secundaria</p>
-                                  <p className="text-sm font-bold text-white">{solicitud.ref2_name || 'N/A'}</p>
-                                  <div className="flex flex-col mt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center capitalize">{solicitud.ref2_relation}</span>
-                                    <span className="flex items-center mt-1"><Phone className="h-3 w-3 mr-1.5 text-primary" /> {solicitud.ref2_phone}</span>
-                                  </div>
+                                  <p className="text-[10px] text-primary font-black uppercase mb-1">Referencia 2</p>
+                                  <p className="text-sm font-bold text-white">{solicitud.ref2_name}</p>
+                                  <p className="text-xs text-muted-foreground mt-1"><Phone className="h-3 w-3 inline mr-1" /> {solicitud.ref2_phone}</p>
                                 </div>
                               </div>
                             </div>
-
                             <div>
-                              <SectionTitle icon={ImageIcon} title="Verificación Visual" />
-                              <div className="grid grid-cols-1 gap-6 mt-4">
-                                {solicitud.face_photo_url ? (
-                                  <div className="space-y-2">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Foto de Rostro</p>
-                                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                      <img src={solicitud.face_photo_url} alt="Rostro" className="object-cover w-full h-full" />
-                                    </div>
+                              <SectionTitle icon={ImageIcon} title="Multimedia" />
+                              <div className="grid grid-cols-1 gap-4 mt-4">
+                                {solicitud.face_photo_url && (
+                                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border">
+                                    <img src={solicitud.face_photo_url} alt="Selfie" className="object-cover w-full h-full" />
                                   </div>
-                                ) : (
-                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO ROSTRO</div>
-                                )}
-                                
-                                {solicitud.id_front_url ? (
-                                  <div className="space-y-2">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Documento de Identidad</p>
-                                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border bg-muted/20">
-                                      <img src={solicitud.id_front_url} alt="Documento" className="object-cover w-full h-full" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="p-8 rounded-2xl border border-dashed border-border text-center text-[10px] text-muted-foreground font-bold">SIN FOTO DOCUMENTO</div>
                                 )}
                               </div>
                             </div>
@@ -361,7 +335,7 @@ function SectionTitle({ icon: Icon, title }: any) {
   return (
     <div className="flex items-center space-x-3 border-l-4 border-primary pl-4">
       <Icon className="h-5 w-5 text-primary" />
-      <h4 className="text-sm font-black text-white uppercase tracking-[0.2em]">{title}</h4>
+      <h4 className="text-sm font-black text-white uppercase tracking-widest">{title}</h4>
     </div>
   );
 }
@@ -369,9 +343,9 @@ function SectionTitle({ icon: Icon, title }: any) {
 function DataBox({ label, value, bold, highlight }: any) {
   return (
     <div className="p-4 bg-muted/20 rounded-2xl border border-border/40">
-      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5 tracking-widest">{label}</p>
-      <p className={`text-base tracking-tight ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
-        {value || 'Información no disponible'}
+      <p className="text-[10px] text-muted-foreground font-black uppercase mb-1.5">{label}</p>
+      <p className={`text-base ${bold ? 'font-black' : 'font-semibold'} ${highlight ? 'text-primary' : 'text-white'}`}>
+        {value || 'N/A'}
       </p>
     </div>
   );
