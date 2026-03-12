@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +74,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
         )}
       </DialogTrigger>
       <DialogContent className="bg-[#212529] border-none text-white max-w-md p-0 rounded-[32px] overflow-hidden shadow-2xl">
+        <DialogTitle className="sr-only">Detalles Financieros del Préstamo</DialogTitle>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
