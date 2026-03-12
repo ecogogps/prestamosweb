@@ -45,6 +45,13 @@ export function LoanDetailsModal({ loan, trigger }: LoanDetailsModalProps) {
     'overdue': 'MORA'
   };
 
+  const hasVisualData = !!(
+    loan.face_photo_url || 
+    loan.id_front_url || 
+    loan.id_back_url || 
+    loan.disbursement_receipt_url
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -129,57 +136,65 @@ export function LoanDetailsModal({ loan, trigger }: LoanDetailsModalProps) {
 
               <div>
                 <SectionTitle icon={ImageIcon} title="Verificación Visual" />
-                <div className="grid grid-cols-1 gap-6 mt-4">
-                  {loan.face_photo_url && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-muted-foreground font-black uppercase">Foto Rostro / Selfie</p>
-                      <img 
-                        src={loan.face_photo_url} 
-                        alt="Selfie" 
-                        className="rounded-xl border border-border aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
-                        onClick={() => window.open(loan.face_photo_url, '_blank')}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    {loan.id_front_url && (
+                {hasVisualData ? (
+                  <div className="grid grid-cols-1 gap-6 mt-4">
+                    {loan.face_photo_url && (
                       <div className="space-y-2">
-                        <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Frontal</p>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase">Foto Rostro / Selfie</p>
                         <img 
-                          src={loan.id_front_url} 
-                          alt="ID Frontal" 
-                          className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
-                          onClick={() => window.open(loan.id_front_url, '_blank')}
+                          src={loan.face_photo_url} 
+                          alt="Selfie" 
+                          className="rounded-xl border border-border aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
+                          onClick={() => window.open(loan.face_photo_url, '_blank')}
                         />
                       </div>
                     )}
                     
-                    {loan.id_back_url && (
+                    <div className="grid grid-cols-1 gap-4">
+                      {loan.id_front_url && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Frontal</p>
+                          <img 
+                            src={loan.id_front_url} 
+                            alt="ID Frontal" 
+                            className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
+                            onClick={() => window.open(loan.id_front_url, '_blank')}
+                          />
+                        </div>
+                      )}
+                      
+                      {loan.id_back_url && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Reverso</p>
+                          <img 
+                            src={loan.id_back_url} 
+                            alt="ID Reverso" 
+                            className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
+                            onClick={() => window.open(loan.id_back_url, '_blank')}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {loan.disbursement_receipt_url && (
                       <div className="space-y-2">
-                        <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Reverso</p>
+                        <p className="text-[10px] text-primary font-black uppercase">Comprobante de Desembolso</p>
                         <img 
-                          src={loan.id_back_url} 
-                          alt="ID Reverso" 
-                          className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
-                          onClick={() => window.open(loan.id_back_url, '_blank')}
+                          src={loan.disbursement_receipt_url} 
+                          alt="Comprobante" 
+                          className="rounded-xl border border-primary/30 aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto" 
+                          onClick={() => window.open(loan.disbursement_receipt_url, '_blank')}
                         />
                       </div>
                     )}
                   </div>
-
-                  {loan.disbursement_receipt_url && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-primary font-black uppercase">Comprobante de Desembolso</p>
-                      <img 
-                        src={loan.disbursement_receipt_url} 
-                        alt="Comprobante" 
-                        className="rounded-xl border border-primary/30 aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto" 
-                        onClick={() => window.open(loan.disbursement_receipt_url, '_blank')}
-                      />
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <div className="mt-4 p-10 border border-dashed border-border rounded-3xl flex flex-col items-center justify-center bg-muted/5 text-muted-foreground text-center">
+                    <ImageIcon className="h-10 w-10 mb-3 opacity-20" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sin archivos adjuntos</p>
+                    <p className="text-[9px] mt-1 opacity-50 uppercase">El cliente no ha cargado imágenes aún</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
