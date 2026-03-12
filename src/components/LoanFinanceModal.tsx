@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { 
   Loader2,
   PiggyBank,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 interface LoanFinanceModalProps {
   loanId: string;
@@ -26,24 +28,44 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchDetails = async () => {
     if (!loanId) return;
     setLoading(true);
     setErrorMessage(null);
     try {
-      const { data: rpcData, error } = await supabase.rpc('get_loan_details', { 
+      // 1. Llamada al RPC para obtener cálculos en tiempo real
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_loan_details', { 
         p_loan_id: loanId 
       });
 
-      if (error) {
-        // Extraemos el mensaje de error de forma segura para evitar logs de objetos vacíos {}
-        const msg = error.message || "Error al conectar con el servidor";
-        setErrorMessage(msg);
+      if (rpcError) {
+        setErrorMessage(rpcError.message || "Error al conectar con el servidor");
         return;
       }
 
-      setData(rpcData || null);
+      if (rpcData) {
+        setData(rpcData);
+
+        // 2. Sincronización con la tabla loan_summaries para consulta posterior
+        // Usamos upsert para insertar o actualizar si ya existe
+        const { error: upsertError } = await supabase
+          .from('loan_summaries')
+          .upsert({
+            loan_id: loanId,
+            total_to_pay: rpcData.total_to_pay,
+            late_interest: rpcData.late_interest,
+            delay_days: rpcData.delay_days,
+            expiration_date: rpcData.expiration_date,
+            last_sync_at: new Date().toISOString()
+          });
+
+        if (upsertError) {
+          console.warn("No se pudo sincronizar en loan_summaries:", upsertError.message);
+          // No bloqueamos al usuario si la tabla de resumen falla
+        }
+      }
     } catch (err: any) {
       setErrorMessage(err.message || "Ocurrió un error inesperado al calcular los datos.");
     } finally {
@@ -91,7 +113,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
               <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white uppercase tracking-tight">Error de Acceso</p>
+              <p className="text-sm font-bold text-white uppercase tracking-tight">Acceso denegado o Error</p>
               <p className="text-xs text-muted-foreground mt-1">{errorMessage}</p>
             </div>
             <Button 
@@ -100,7 +122,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
               onClick={fetchDetails}
               className="mt-4 rounded-xl border-white/10 hover:bg-white/5"
             >
-              Reintentar
+              <RefreshCw className="h-4 w-4 mr-2" /> Reintentar
             </Button>
           </div>
         ) : data ? (
@@ -139,7 +161,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
 
             {/* Detalles Section */}
             <div className="px-8 pb-10 pt-4 space-y-6">
-              <h3 className="text-xl font-black text-white tracking-tight uppercase">Detalles</h3>
+              <h3 className="text-xl font-black text-white tracking-tight uppercase">Desglose Financiero</h3>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -151,7 +173,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                   <span className="text-sm font-bold text-white capitalize">{data.payment_method}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Monto recibido</span>
+                  <span className="text-sm font-medium text-muted-foreground">Monto recibido (60%)</span>
                   <span className="text-sm font-bold text-white">{formatCurrency(data.amount_received)}</span>
                 </div>
 
@@ -160,7 +182,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Interés total</span>
+                  <span className="text-sm font-medium text-muted-foreground">Interés base (40%)</span>
                   <span className="text-sm font-bold text-white">{formatCurrency(data.total_interest)}</span>
                 </div>
                 
@@ -174,15 +196,19 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                 </div>
 
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-sm font-medium text-muted-foreground">Monto a pagar</span>
+                  <span className="text-sm font-medium text-muted-foreground">Monto total a pagar</span>
                   <span className="text-lg font-black text-white">{formatCurrency(data.total_to_pay)}</span>
                 </div>
               </div>
+              
+              <p className="text-[9px] text-center text-muted-foreground uppercase font-bold opacity-40">
+                Sincronizado automáticamente con loan_summaries
+              </p>
             </div>
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-sm text-muted-foreground font-bold">No se pudieron cargar los datos.</p>
+            <p className="text-sm text-muted-foreground font-bold uppercase">No se pudieron cargar los datos.</p>
           </div>
         )}
       </DialogContent>
