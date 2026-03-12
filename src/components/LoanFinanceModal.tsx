@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -41,15 +42,17 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
       });
 
       if (rpcError) {
-        setErrorMessage(rpcError.message || "Error al conectar con el servidor");
+        // Si el error viene de la base de datos (RAISE EXCEPTION), lo capturamos aquí
+        setErrorMessage(rpcError.message || "Acceso denegado o error de servidor");
         return;
       }
 
       if (rpcData) {
+        // El RPC devuelve un objeto JSON directamente
         setData(rpcData);
 
-        // 2. Sincronización con la tabla loan_summaries para consulta posterior
-        // Usamos upsert para insertar o actualizar si ya existe
+        // 2. Sincronización con la tabla loan_summaries para consulta administrativa posterior
+        // Esto permite que Admin/Cobrador consulten la tabla sin ejecutar el RPC cada vez
         const { error: upsertError } = await supabase
           .from('loan_summaries')
           .upsert({
@@ -62,8 +65,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
           });
 
         if (upsertError) {
-          console.warn("No se pudo sincronizar en loan_summaries:", upsertError.message);
-          // No bloqueamos al usuario si la tabla de resumen falla
+          console.warn("Sincronización de resumen omitida:", upsertError.message);
         }
       }
     } catch (err: any) {
@@ -113,7 +115,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
               <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white uppercase tracking-tight">Acceso denegado o Error</p>
+              <p className="text-sm font-bold text-white uppercase tracking-tight">ACCESO DENEGADO O ERROR</p>
               <p className="text-xs text-muted-foreground mt-1">{errorMessage}</p>
             </div>
             <Button 
