@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -49,6 +50,15 @@ export default function AceptadosPage() {
     }
   };
 
+  const getMexicoTodayStr = () => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  };
+
   useEffect(() => {
     fetchPrestamos();
     const channel = supabase.channel('loans-aceptados').on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => fetchPrestamos()).subscribe();
@@ -60,7 +70,23 @@ export default function AceptadosPage() {
     try {
       const { data, error } = await supabase.from('loans').select('*').eq('status', 'accepted').order('updated_at', { ascending: false });
       if (error) throw error;
-      setPrestamos(data || []);
+
+      const todayStr = getMexicoTodayStr();
+      
+      // Filtrar para excluir los que ya están vencidos (Módulo S1)
+      const activos = (data || []).filter(loan => {
+        // Si no ha sido desembolsado, se queda en aceptados
+        if (!loan.disbursed_at) return true;
+        
+        const disbursement = new Date(loan.disbursed_at.split('T')[0] + 'T12:00:00');
+        const dueDate = new Date(disbursement);
+        dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
+        
+        // Solo mostrar si el vencimiento es hoy o en el futuro (no vencido)
+        return dueDate.toISOString().split('T')[0] >= todayStr;
+      });
+
+      setPrestamos(activos);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
@@ -108,7 +134,8 @@ export default function AceptadosPage() {
         {filteredPrestamos.length === 0 ? (
           <Card className="bg-card/30 border-dashed border-border p-16 text-center">
             <CheckCircle2 className="h-10 w-10 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white">No hay resultados</h3>
+            <h3 className="text-xl font-bold text-white">No hay préstamos al día</h3>
+            <p className="text-muted-foreground text-sm mt-2">Los préstamos vencidos se encuentran en el módulo S1.</p>
           </Card>
         ) : (
           filteredPrestamos.map((prestamo) => (
@@ -164,7 +191,6 @@ function DisbursementAction({ prestamo, onUpdate }: { prestamo: any, onUpdate: (
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   
-  // Inicializar con la fecha de la base de datos o hoy, formateado como YYYY-MM-DD
   const initialDate = prestamo.disbursed_at 
     ? prestamo.disbursed_at.split('T')[0] 
     : new Date().toISOString().split('T')[0];
