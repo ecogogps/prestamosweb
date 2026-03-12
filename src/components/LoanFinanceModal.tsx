@@ -42,17 +42,14 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
       });
 
       if (rpcError) {
-        // Si el error viene de la base de datos (RAISE EXCEPTION), lo capturamos aquí
         setErrorMessage(rpcError.message || "Acceso denegado o error de servidor");
         return;
       }
 
       if (rpcData) {
-        // El RPC devuelve un objeto JSON directamente
         setData(rpcData);
 
         // 2. Sincronización con la tabla loan_summaries para consulta administrativa posterior
-        // Esto permite que Admin/Cobrador consulten la tabla sin ejecutar el RPC cada vez
         const { error: upsertError } = await supabase
           .from('loan_summaries')
           .upsert({
@@ -163,7 +160,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
 
             {/* Detalles Section */}
             <div className="px-8 pb-10 pt-4 space-y-6">
-              <h3 className="text-xl font-black text-white tracking-tight uppercase">Desglose Financiero</h3>
+              <h3 className="text-xl font-black text-white tracking-tight uppercase">Detalles</h3>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -175,7 +172,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                   <span className="text-sm font-bold text-white capitalize">{data.payment_method}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Monto recibido (60%)</span>
+                  <span className="text-sm font-medium text-muted-foreground">Monto recibido</span>
                   <span className="text-sm font-bold text-white">{formatCurrency(data.amount_received)}</span>
                 </div>
 
@@ -184,13 +181,13 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-muted-foreground">Interés base (40%)</span>
+                  <span className="text-sm font-medium text-muted-foreground">Interés total</span>
                   <span className="text-sm font-bold text-white">{formatCurrency(data.total_interest)}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-muted-foreground">
-                    Mora ({data.delay_days} días · 5%/día)
+                    Mora
                   </span>
                   <span className={`text-sm font-bold ${data.late_interest > 0 ? 'text-red-400' : 'text-white'}`}>
                     {data.late_interest > 0 ? '+' : ''}{formatCurrency(data.late_interest)}
@@ -198,14 +195,10 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
                 </div>
 
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-sm font-medium text-muted-foreground">Monto total a pagar</span>
+                  <span className="text-sm font-medium text-muted-foreground">Monto a pagar</span>
                   <span className="text-lg font-black text-white">{formatCurrency(data.total_to_pay)}</span>
                 </div>
               </div>
-              
-              <p className="text-[9px] text-center text-muted-foreground uppercase font-bold opacity-40">
-                Sincronizado automáticamente con loan_summaries
-              </p>
             </div>
           </div>
         ) : (
