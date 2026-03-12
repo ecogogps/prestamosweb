@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   DollarSign, 
@@ -29,16 +29,26 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
   const [data, setData] = useState<any>(null);
 
   const fetchDetails = async () => {
+    if (!loanId) return;
     setLoading(true);
     try {
       const { data: rpcData, error } = await supabase.rpc('get_loan_details', { 
         p_loan_id: loanId 
       });
 
-      if (error) throw error;
-      setData(rpcData[0] || rpcData); // RPC a veces devuelve array o objeto
-    } catch (err) {
-      console.error("Error fetching loan financial details:", err);
+      if (error) {
+        console.error("Error de RPC:", error.message, error.details, error.hint);
+        throw error;
+      }
+
+      // Supabase RPC puede retornar un objeto o un arreglo de 1 elemento
+      if (Array.isArray(rpcData)) {
+        setData(rpcData[0] || null);
+      } else {
+        setData(rpcData || null);
+      }
+    } catch (err: any) {
+      console.error("Error al obtener detalles financieros del préstamo:", err.message || err);
     } finally {
       setLoading(false);
     }
@@ -54,7 +64,10 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A';
     try {
-      const parts = dateStr.split('T')[0].split('-');
+      // Manejar tanto formato ISO como solo fecha
+      const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return dateStr;
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     } catch (e) {
       return dateStr;
@@ -93,9 +106,9 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
               <h2 className="text-4xl font-black text-white tracking-tighter">
                 {formatCurrency(data.total_to_pay)}
               </h2>
-              {data.late_interest > 0 && (
+              {(data.late_interest > 0 || data.status === 'overdue') && (
                  <Badge variant="destructive" className="mt-3 bg-red-500/20 text-red-400 border-red-500/20 font-black px-3 py-1 text-[10px] uppercase">
-                    Incluye Mora
+                    Mora Aplicada
                  </Badge>
               )}
             </div>
@@ -104,11 +117,11 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
               <div className="p-4 bg-muted/20 rounded-2xl border border-border/40 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground font-black uppercase mb-0.5 tracking-widest">Mora Acumulada</p>
-                  <p className="text-lg font-black text-red-400">
+                  <p className={`text-lg font-black ${data.late_interest > 0 ? 'text-red-400' : 'text-white'}`}>
                     {formatCurrency(data.late_interest)}
                   </p>
                 </div>
-                <AlertCircle className="h-5 w-5 text-red-400/50" />
+                <AlertCircle className={`h-5 w-5 ${data.late_interest > 0 ? 'text-red-400/50' : 'text-muted-foreground/30'}`} />
               </div>
 
               <div className="p-4 bg-muted/20 rounded-2xl border border-border/40 flex items-center justify-between">
@@ -128,7 +141,7 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground font-bold">No se pudieron cargar los datos.</p>
+            <p className="text-sm text-muted-foreground font-bold">No se pudieron cargar los datos financieros.</p>
           </div>
         )}
       </DialogContent>
