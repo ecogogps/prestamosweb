@@ -83,12 +83,12 @@ export function LoanDetailsModal({ loan, trigger }: LoanDetailsModalProps) {
               </div>
             </div>
 
-            {/* Columna 2: Perfil y Ubicación */}
+            {/* Columna 2: Perfil y Dirección */}
             <div className="space-y-8">
               <div>
                 <SectionTitle icon={User} title="Perfil Personal" />
                 <div className="grid grid-cols-1 gap-3 mt-4">
-                  <DataBox label="Celular (WhatsApp)" value={loan.phone} highlight />
+                  <DataBox label="Celular" value={loan.phone} highlight />
                   <DataBox label="Documento ID" value={loan.doc_number} />
                   <DataBox label="Correo" value={loan.email} />
                   <DataBox label="Género" value={loan.gender} />
@@ -99,9 +99,9 @@ export function LoanDetailsModal({ loan, trigger }: LoanDetailsModalProps) {
               </div>
 
               <div>
-                <SectionTitle icon={MapPin} title="Ubicación" />
+                <SectionTitle icon={MapPin} title="Dirección" />
                 <div className="grid grid-cols-1 gap-3 mt-4">
-                  <DataBox label="Dirección" value={loan.address} />
+                  <DataBox label="Dirección Exacta" value={loan.address} />
                   <DataBox label="Ciudad" value={loan.city} />
                   <DataBox label="Provincia/Estado" value={loan.province} />
                   <DataBox label="Tipo de Vivienda" value={loan.housing_type} />
@@ -129,36 +129,52 @@ export function LoanDetailsModal({ loan, trigger }: LoanDetailsModalProps) {
 
               <div>
                 <SectionTitle icon={ImageIcon} title="Verificación Visual" />
-                <div className="grid grid-cols-1 gap-4 mt-4">
+                <div className="grid grid-cols-1 gap-6 mt-4">
                   {loan.face_photo_url && (
                     <div className="space-y-2">
                       <p className="text-[10px] text-muted-foreground font-black uppercase">Foto Rostro / Selfie</p>
                       <img 
                         src={loan.face_photo_url} 
                         alt="Selfie" 
-                        className="rounded-xl border border-border aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        className="rounded-xl border border-border aspect-square object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
                         onClick={() => window.open(loan.face_photo_url, '_blank')}
                       />
                     </div>
                   )}
-                  {loan.id_front_url && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-muted-foreground font-black uppercase">Documento de Identidad</p>
-                      <img 
-                        src={loan.id_front_url} 
-                        alt="ID" 
-                        className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => window.open(loan.id_front_url, '_blank')}
-                      />
-                    </div>
-                  )}
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {loan.id_front_url && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Frontal</p>
+                        <img 
+                          src={loan.id_front_url} 
+                          alt="ID Frontal" 
+                          className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
+                          onClick={() => window.open(loan.id_front_url, '_blank')}
+                        />
+                      </div>
+                    )}
+                    
+                    {loan.id_back_url && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-muted-foreground font-black uppercase">ID - Reverso</p>
+                        <img 
+                          src={loan.id_back_url} 
+                          alt="ID Reverso" 
+                          className="rounded-xl border border-border aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto"
+                          onClick={() => window.open(loan.id_back_url, '_blank')}
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   {loan.disbursement_receipt_url && (
                     <div className="space-y-2">
                       <p className="text-[10px] text-primary font-black uppercase">Comprobante de Desembolso</p>
                       <img 
                         src={loan.disbursement_receipt_url} 
                         alt="Comprobante" 
-                        className="rounded-xl border border-primary/30 aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity" 
+                        className="rounded-xl border border-primary/30 aspect-video object-cover cursor-pointer hover:opacity-80 transition-opacity w-full h-auto" 
                         onClick={() => window.open(loan.disbursement_receipt_url, '_blank')}
                       />
                     </div>
