@@ -3,21 +3,17 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  DollarSign, 
-  AlertCircle, 
-  Calendar, 
   Loader2,
-  Wallet
+  PiggyBank
 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface LoanFinanceModalProps {
   loanId: string;
@@ -41,14 +37,10 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
         throw error;
       }
 
-      // Supabase RPC puede retornar un objeto o un arreglo de 1 elemento
-      if (Array.isArray(rpcData)) {
-        setData(rpcData[0] || null);
-      } else {
-        setData(rpcData || null);
-      }
+      // La función RETURNS JSON devuelve el objeto directamente
+      setData(rpcData || null);
     } catch (err: any) {
-      console.error("Error al obtener detalles financieros del préstamo:", err.message || err);
+      console.error("Error al obtener detalles financieros:", err.message || err);
     } finally {
       setLoading(false);
     }
@@ -64,11 +56,8 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A';
     try {
-      // Manejar tanto formato ISO como solo fecha
-      const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-      const parts = datePart.split('-');
-      if (parts.length !== 3) return dateStr;
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
     } catch (e) {
       return dateStr;
     }
@@ -83,65 +72,92 @@ export function LoanFinanceModal({ loanId, trigger }: LoanFinanceModalProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-card border-none text-white max-w-sm p-8 rounded-3xl shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-black uppercase text-center mb-6 tracking-tighter flex items-center justify-center gap-2">
-            <Wallet className="h-6 w-6 text-primary" />
-            DETALLES DE COBRO
-          </DialogTitle>
-        </DialogHeader>
-
+      <DialogContent className="bg-[#212529] border-none text-white max-w-md p-0 rounded-[32px] overflow-hidden shadow-2xl">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Calculando intereses...</p>
           </div>
         ) : data ? (
-          <div className="space-y-6">
-            <div className="p-6 bg-primary/10 rounded-3xl border border-primary/20 text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2">
-                 <DollarSign className="h-12 w-12 text-primary/10 -mr-4 -mt-4" />
-              </div>
-              <p className="text-[10px] text-primary font-black uppercase mb-1 tracking-widest">Total a Pagar</p>
-              <h2 className="text-4xl font-black text-white tracking-tighter">
-                {formatCurrency(data.total_to_pay)}
-              </h2>
-              {(data.late_interest > 0 || data.status === 'overdue') && (
-                 <Badge variant="destructive" className="mt-3 bg-red-500/20 text-red-400 border-red-500/20 font-black px-3 py-1 text-[10px] uppercase">
-                    Mora Aplicada
-                 </Badge>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="p-4 bg-muted/20 rounded-2xl border border-border/40 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-black uppercase mb-0.5 tracking-widest">Mora Acumulada</p>
-                  <p className={`text-lg font-black ${data.late_interest > 0 ? 'text-red-400' : 'text-white'}`}>
-                    {formatCurrency(data.late_interest)}
-                  </p>
+          <div className="flex flex-col">
+            {/* Header / Card Superior */}
+            <div className="p-8 pb-10 bg-[#2b2f33] rounded-[32px] m-4 shadow-lg border border-white/5">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-[#71AF57]/20 flex items-center justify-center">
+                    <PiggyBank className="h-6 w-6 text-[#71AF57]" />
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tighter">Préstamo</h2>
                 </div>
-                <AlertCircle className={`h-5 w-5 ${data.late_interest > 0 ? 'text-red-400/50' : 'text-muted-foreground/30'}`} />
+                {data.is_overdue && (
+                  <Badge className="bg-orange-500/20 text-orange-500 border-none font-bold px-3 py-1 rounded-lg uppercase text-[10px] tracking-widest">
+                    VENCIDO
+                  </Badge>
+                )}
               </div>
 
-              <div className="p-4 bg-muted/20 rounded-2xl border border-border/40 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-black uppercase mb-0.5 tracking-widest">Fecha Vencimiento</p>
-                  <p className="text-lg font-black text-white">
-                    {formatDate(data.expiration_date)}
-                  </p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-[#71AF57] font-black text-lg">{formatCurrency(data.requested_amount)}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight uppercase tracking-tight">Monto de<br/>préstamo</p>
                 </div>
-                <Calendar className="h-5 w-5 text-primary/50" />
+                <div className="text-center">
+                  <p className="text-[#71AF57] font-black text-lg">{formatDate(data.disbursement_date)}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight uppercase tracking-tight">Fecha de<br/>desembolso</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-orange-500 font-black text-lg">{formatDate(data.expiration_date)}</p>
+                  <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight uppercase tracking-tight">Fecha de<br/>vencimiento</p>
+                </div>
               </div>
             </div>
 
-            <p className="text-[9px] text-center text-muted-foreground font-bold uppercase tracking-widest opacity-50 px-4 leading-relaxed">
-              Los cálculos de mora y totales son generados automáticamente según las políticas de MoneyBic.
-            </p>
+            {/* Detalles Section */}
+            <div className="px-8 pb-10 pt-4 space-y-6">
+              <h3 className="text-xl font-black text-white tracking-tight uppercase">Detalles</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Plazo del préstamo</span>
+                  <span className="text-sm font-bold text-white">{data.payment_term} días</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Forma de pago</span>
+                  <span className="text-sm font-bold text-white capitalize">{data.payment_method}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Monto recibido</span>
+                  <span className="text-sm font-bold text-white">{formatCurrency(data.amount_received)}</span>
+                </div>
+
+                <div className="py-2">
+                  <Separator className="bg-white/5" />
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Interés total</span>
+                  <span className="text-sm font-bold text-white">{formatCurrency(data.total_interest)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Mora ({data.delay_days} días · 5%/día)
+                  </span>
+                  <span className={`text-sm font-bold ${data.late_interest > 0 ? 'text-red-400' : 'text-white'}`}>
+                    {data.late_interest > 0 ? '+' : ''}{formatCurrency(data.late_interest)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-sm font-medium text-muted-foreground">Monto a pagar</span>
+                  <span className="text-lg font-black text-white">{formatCurrency(data.total_to_pay)}</span>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground font-bold">No se pudieron cargar los datos financieros.</p>
+          <div className="text-center py-12">
+            <p className="text-sm text-muted-foreground font-bold">No se pudieron cargar los datos.</p>
           </div>
         )}
       </DialogContent>
