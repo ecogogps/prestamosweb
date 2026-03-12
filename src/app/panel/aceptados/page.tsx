@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -11,7 +12,8 @@ import {
   Calendar as CalendarIcon,
   Loader2,
   Search,
-  Upload
+  Upload,
+  X
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +34,6 @@ import { LoanDetailsModal } from '@/components/LoanDetailsModal';
 export default function AceptadosPage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
@@ -66,31 +67,6 @@ export default function AceptadosPage() {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleUpdateDisbursement(id: string, date: string, file?: File) {
-    setUpdatingId(id);
-    try {
-      let receiptUrl = null;
-      if (file) {
-        const fileName = `${id}_${Date.now()}.${file.name.split('.').pop()}`;
-        const filePath = `receipts/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('loan-files').upload(filePath, file);
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('loan-files').getPublicUrl(filePath);
-        receiptUrl = publicUrl;
-      }
-
-      const { error } = await supabase.from('loans').update({ disbursed_at: date, disbursement_receipt_url: receiptUrl }).eq('id', id);
-      if (error) throw error;
-
-      toast({ title: "Desembolso Registrado", description: "Información guardada correctamente." });
-      fetchPrestamos();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
-    } finally {
-      setUpdatingId(null);
     }
   }
 
@@ -141,7 +117,7 @@ export default function AceptadosPage() {
             <Card key={prestamo.id} className="bg-card border-none shadow-xl border-l-4 border-l-primary group">
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
                 <div className="flex items-center space-x-5">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 overflow-hidden">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 overflow-hidden border border-border/50">
                     {prestamo.face_photo_url ? (
                       <img src={prestamo.face_photo_url} alt="Rostro" className="h-full w-full object-cover" />
                     ) : (
@@ -151,46 +127,27 @@ export default function AceptadosPage() {
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-xl font-black text-white uppercase tracking-tight">{prestamo.first_name} {prestamo.last_name}</h3>
-                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">{prestamo.phone || 'S/N'}</span>
+                      <span className="text-primary font-bold text-lg bg-primary/10 px-3 py-0.5 rounded-lg border border-primary/20">
+                        {prestamo.phone || 'S/N'}
+                      </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
-                      <span className="flex items-center font-bold text-primary"><DollarSign className="h-4 w-4 mr-0.5" />{formatAmount(prestamo.amount)}</span>
-                      <span className="flex items-center text-muted-foreground"><CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />Desembolso: {formatDateDisplay(prestamo.disbursed_at)}</span>
+                      <span className="flex items-center font-bold text-primary">
+                        <DollarSign className="h-4 w-4 mr-0.5" />
+                        {formatAmount(prestamo.amount)}
+                      </span>
+                      <span className="flex items-center text-muted-foreground">
+                        <CalendarIcon className="h-4 w-4 mr-1.5 opacity-70" />
+                        Desembolso: {formatDateDisplay(prestamo.disbursed_at)}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" className="bg-primary/10 hover:bg-primary/20 text-primary font-black rounded-xl h-10 px-6">DESEMBOLSO</Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-card border-none text-white max-w-md">
-                      <DialogHeader><h2 className="text-xl font-black uppercase">Registrar Desembolso</h2></DialogHeader>
-                      <div className="space-y-6 py-4">
-                        <div className="space-y-2">
-                          <Label>Fecha de Transferencia</Label>
-                          <Input id={`date-${prestamo.id}`} type="date" defaultValue={prestamo.disbursed_at || new Date().toISOString().split('T')[0]} className="bg-muted/50 border-border rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Comprobante</Label>
-                          <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-2xl bg-muted/20 relative">
-                            <Upload className="h-8 w-8 text-primary mb-2" />
-                            <input id={`file-${prestamo.id}`} type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button className="bg-primary text-white font-black w-full h-12 rounded-xl" onClick={() => {
-                          const date = (document.getElementById(`date-${prestamo.id}`) as HTMLInputElement).value;
-                          const file = (document.getElementById(`file-${prestamo.id}`) as HTMLInputElement).files?.[0];
-                          handleUpdateDisbursement(prestamo.id, date, file);
-                        }} disabled={updatingId === prestamo.id}>{updatingId === prestamo.id && <Loader2 className="animate-spin mr-2" />}GUARDAR</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <DisbursementAction prestamo={prestamo} onUpdate={fetchPrestamos} />
                   <LoanDetailsModal loan={prestamo} trigger={
-                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary">
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary transition-colors">
                       <Eye className="h-5 w-5" />
                     </Button>
                   }/>
@@ -201,5 +158,126 @@ export default function AceptadosPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function DisbursementAction({ prestamo, onUpdate }: { prestamo: any, onUpdate: () => void }) {
+  const [updating, setUpdating] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [date, setDate] = useState(prestamo.disbursed_at || new Date().toISOString().split('T')[0]);
+  const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+    }
+  };
+
+  const handleSave = async () => {
+    setUpdating(true);
+    try {
+      let receiptUrl = prestamo.disbursement_receipt_url;
+
+      if (file) {
+        const fileName = `${prestamo.id}_${Date.now()}.${file.name.split('.').pop()}`;
+        const filePath = `receipts/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('loan-files').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('loan-files').getPublicUrl(filePath);
+        receiptUrl = publicUrl;
+      }
+
+      const { error } = await supabase.from('loans').update({ 
+        disbursed_at: date, 
+        disbursement_receipt_url: receiptUrl 
+      }).eq('id', prestamo.id);
+      
+      if (error) throw error;
+
+      toast({ title: "Desembolso Actualizado", description: "La información se ha guardado correctamente." });
+      onUpdate();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary" className="bg-primary/10 hover:bg-primary/20 text-primary font-black rounded-xl h-10 px-6 uppercase tracking-tight">
+          Desembolso
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-card border-none text-white max-w-md p-8 rounded-3xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-black uppercase text-center mb-4 tracking-tighter">REGISTRAR DESEMBOLSO</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-white opacity-80 uppercase tracking-widest text-[10px]">Fecha de Transferencia</Label>
+            <Input 
+              type="date" 
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-muted/30 border-border focus:ring-primary focus:border-primary h-12 rounded-xl text-white font-bold" 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-bold text-white opacity-80 uppercase tracking-widest text-[10px]">Comprobante</Label>
+            <div className="relative group">
+              <div className="flex flex-col items-center justify-center min-h-[180px] border-2 border-dashed border-border rounded-2xl bg-muted/20 hover:bg-muted/30 transition-all overflow-hidden relative">
+                {preview || prestamo.disbursement_receipt_url ? (
+                  <img 
+                    src={preview || prestamo.disbursement_receipt_url} 
+                    alt="Vista previa" 
+                    className="w-full h-full object-cover absolute inset-0 group-hover:opacity-40 transition-opacity" 
+                  />
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 text-primary mb-3" />
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Subir Imagen</p>
+                  </>
+                )}
+                
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center bg-black/40 transition-opacity">
+                   <Upload className="h-8 w-8 text-white" />
+                </div>
+
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                />
+              </div>
+              
+              {(preview || prestamo.disbursement_receipt_url) && (
+                 <Badge className="absolute top-2 right-2 z-20 bg-primary text-white font-black text-[10px] uppercase">
+                    Imagen Cargada
+                 </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="mt-8">
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-white font-black w-full h-14 rounded-2xl text-lg shadow-lg shadow-primary/20 transition-transform active:scale-95" 
+            onClick={handleSave}
+            disabled={updating}
+          >
+            {updating ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+            {updating ? 'GUARDANDO...' : 'GUARDAR'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
