@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { LoanDetailsModal } from '@/components/LoanDetailsModal';
+import { LoanFinanceModal } from '@/components/LoanFinanceModal';
 
 export default function SOnePage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
@@ -122,9 +123,13 @@ export default function SOnePage() {
                     </div>
                   </div>
                 </div>
-                <LoanDetailsModal loan={prestamo} trigger={
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-red-400/10 hover:text-red-400"><Eye className="h-5 w-5" /></Button>
-                }/>
+
+                <div className="flex items-center gap-3">
+                  <LoanFinanceModal loanId={prestamo.id} />
+                  <LoanDetailsModal loan={prestamo} trigger={
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-red-400/10 hover:text-red-400"><Eye className="h-5 w-5" /></Button>
+                  }/>
+                </div>
               </div>
             </Card>
           );

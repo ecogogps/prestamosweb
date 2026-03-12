@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -29,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoanDetailsModal } from '@/components/LoanDetailsModal';
+import { LoanFinanceModal } from '@/components/LoanFinanceModal';
 
 export default function AceptadosPage() {
   const [prestamos, setPrestamos] = useState<any[]>([]);
@@ -73,16 +73,11 @@ export default function AceptadosPage() {
 
       const todayStr = getMexicoTodayStr();
       
-      // Filtrar para excluir los que ya están vencidos (Módulo S1)
       const activos = (data || []).filter(loan => {
-        // Si no ha sido desembolsado, se queda en aceptados
         if (!loan.disbursed_at) return true;
-        
         const disbursement = new Date(loan.disbursed_at.split('T')[0] + 'T12:00:00');
         const dueDate = new Date(disbursement);
         dueDate.setDate(dueDate.getDate() + (loan.payment_term || 0));
-        
-        // Solo mostrar si el vencimiento es hoy o en el futuro (no vencido)
         return dueDate.toISOString().split('T')[0] >= todayStr;
       });
 
@@ -170,6 +165,7 @@ export default function AceptadosPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <LoanFinanceModal loanId={prestamo.id} />
                   <DisbursementAction prestamo={prestamo} onUpdate={fetchPrestamos} />
                   <LoanDetailsModal loan={prestamo} trigger={
                     <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border hover:bg-primary/10 hover:text-primary transition-colors">
