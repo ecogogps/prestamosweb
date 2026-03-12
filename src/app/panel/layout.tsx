@@ -88,13 +88,22 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
   if (!user) return null;
 
-  const navItems = [
-    { name: 'Solicitudes', href: '/panel/solicitudes', icon: ClipboardList },
-    { name: 'Aceptados', href: '/panel/aceptados', icon: CheckCircle2 },
-    { name: 'D-1', href: '/panel/d-1', icon: Clock },
-    { name: 'D0', href: '/panel/d0', icon: CalendarCheck },
-    { name: 'S1', href: '/panel/s1', icon: AlertTriangle },
+  // Definición de ítems de navegación con metadatos de rol
+  const allNavItems = [
+    { name: 'Solicitudes', href: '/panel/solicitudes', icon: ClipboardList, adminOnly: true },
+    { name: 'Aceptados', href: '/panel/aceptados', icon: CheckCircle2, adminOnly: true },
+    { name: 'D-1', href: '/panel/d-1', icon: Clock, adminOnly: false },
+    { name: 'D0', href: '/panel/d0', icon: CalendarCheck, adminOnly: false },
+    { name: 'S1', href: '/panel/s1', icon: AlertTriangle, adminOnly: false },
   ];
+
+  // Filtrar ítems según el rol
+  const navItems = allNavItems.filter(item => {
+    if (profile?.role?.toLowerCase() === 'cobrador') {
+      return !item.adminOnly;
+    }
+    return true; // Admin ve todo
+  });
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
