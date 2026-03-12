@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -12,8 +11,7 @@ import {
   Calendar as CalendarIcon,
   Loader2,
   Search,
-  Upload,
-  X
+  Upload
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,7 +163,13 @@ function DisbursementAction({ prestamo, onUpdate }: { prestamo: any, onUpdate: (
   const [updating, setUpdating] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [date, setDate] = useState(prestamo.disbursed_at || new Date().toISOString().split('T')[0]);
+  
+  // Inicializar con la fecha de la base de datos o hoy, formateado como YYYY-MM-DD
+  const initialDate = prestamo.disbursed_at 
+    ? prestamo.disbursed_at.split('T')[0] 
+    : new Date().toISOString().split('T')[0];
+    
+  const [date, setDate] = useState(initialDate);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
